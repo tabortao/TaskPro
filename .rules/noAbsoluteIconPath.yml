@@ -1,0 +1,15 @@
+id: no-absolute-icon-path
+language: TypeScript
+severity: error
+message: "iconPath or selectedIconPath should not start with '/', please remove '/' to use relative path."
+rule:
+  kind: pair
+  all:
+    - has:
+        field: key
+        # Match key must be iconPath or selectedIconPath
+        regex: ^(iconPath|selectedIconPath)$
+    - has:
+        field: value
+        # Match value must start with quote followed by slash /
+        regex: ^['"]\/

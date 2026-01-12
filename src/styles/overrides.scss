@@ -1,0 +1,21 @@
+taro-button-core+taro-button-core {
+  margin-top: 0;
+}
+
+body {
+  taro-input-core {
+    height: unset;
+  }
+
+  taro-button-core {
+    width: unset;
+    padding: 0 14px;
+    line-height: 2.55;
+  }
+
+  /* 针对不同 size 的按钮进行优化 */
+  taro-button-core[size="mini"] {
+    padding: 0 10px;
+    line-height: 2.3;
+  }
+}

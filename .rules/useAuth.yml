@@ -1,0 +1,10 @@
+id: useAuth
+language: Typescript
+files:
+  - src/**/*.ts
+  - src/**/*.tsx
+rule:
+  any:
+    - pattern: 'useAuth($$$ARGS)'
+message: "Detected useAuth hook usage: $MATCH"
+severity: info

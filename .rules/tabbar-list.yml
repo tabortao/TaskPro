@@ -1,0 +1,27 @@
+id: find-tabbar-list
+language: Typescript
+files:
+  - src/app.config.ts
+rule:
+  all:
+    - pattern:
+        context: |
+          export default defineAppConfig({
+            $$$
+            tabBar: $TABBAR,
+            $$$
+          })
+        selector: pair
+    - has:
+        field: value
+        stopBy: end
+        pattern:
+          context: '({ list: $LIST, $$$ })'
+          selector: pair
+
+constraints:
+  TABBAR:
+    kind: object
+
+message: "tabBar: $TABBAR"
+severity: info

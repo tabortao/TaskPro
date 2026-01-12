@@ -1,0 +1,11 @@
+id: navigateTo
+language: Typescript
+files:
+  - src/**/*.ts
+  - src/**/*.tsx
+rule:
+  any:
+    - pattern: 'navigateTo($$$ARGS)'
+    - pattern: 'Taro.navigateTo($$$ARGS)'
+message: "Detected navigateTo usage: $MATCH"
+severity: info

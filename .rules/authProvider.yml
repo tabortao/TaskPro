@@ -1,0 +1,12 @@
+id: authProvider
+language: Tsx
+files:
+  - src/**/*.tsx
+rule:
+  kind: 'jsx_opening_element'
+  has:
+    kind: identifier
+    regex: AuthProvider
+
+message: "Detected AuthProvider component usage: $MATCH"
+severity: info
