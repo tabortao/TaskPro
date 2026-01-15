@@ -1,9 +1,22 @@
 import {Image, ScrollView, Text, Textarea, View} from '@tarojs/components'
 import Taro, {useDidShow, useLoad} from '@tarojs/taro'
-import {useCallback, useEffect, useMemo, useState} from 'react'
+import {useCallback, useMemo, useState} from 'react'
+import TagDrawer from '@/components/TagDrawer'
+import TagForm from '@/components/TagForm'
 import TagSelector from '@/components/TagSelector'
 import TaskItem from '@/components/TaskItem'
-import {addTaskTags, createTask, findOrCreateTag, getRecentTags, getTasks, getTopic, searchTags} from '@/db/api'
+import {
+  addTaskTags,
+  createTag,
+  createTask,
+  deleteTag,
+  findOrCreateTag,
+  getTags,
+  getTasks,
+  getTopic,
+  searchTags,
+  updateTag
+} from '@/db/api'
 import type {Tag, TaskWithTags, Topic} from '@/db/types'
 import {authGuard, getCurrentUserId} from '@/utils/auth'
 import {getTagFullName, parseTagHierarchy, parseTagsFromContent} from '@/utils/tags'
@@ -21,10 +34,16 @@ export default function Tasks() {
   const [topicId, setTopicId] = useState('')
   const [activeTab, setActiveTab] = useState<TabType>('ongoing')
 
+  // 标签管理相关状态
+  const [allTags, setAllTags] = useState<Tag[]>([])
+  const [showTagDrawer, setShowTagDrawer] = useState(false)
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+  const [showTagForm, setShowTagForm] = useState(false)
+  const [editingTag, setEditingTag] = useState<Tag | null>(null)
+
   // 标签自动补全相关状态
   const [showTagSelector, setShowTagSelector] = useState(false)
   const [suggestedTags, setSuggestedTags] = useState<Tag[]>([])
-  const [cursorPosition, setCursorPosition] = useState(0)
 
   useLoad((options) => {
     if (options.topicId) {
@@ -40,10 +59,15 @@ export default function Tasks() {
       const userId = await getCurrentUserId()
       if (!userId) return
 
-      const [topicData, tasksData] = await Promise.all([getTopic(topicId), getTasks(topicId)])
+      const [topicData, tasksData, tagsData] = await Promise.all([
+        getTopic(topicId),
+        getTasks(topicId),
+        getTags(userId)
+      ])
 
       setTopic(topicData)
       setAllTasks(tasksData)
+      setAllTags(tagsData)
     } catch (error) {
       console.error('加载数据失败:', error)
       Taro.showToast({title: '加载失败', icon: 'none'})
@@ -61,65 +85,81 @@ export default function Tasks() {
     })
   })
 
-  // 根据 Tab 过滤任务
+  // 根据 Tab 和标签筛选任务
   const displayTasks = useMemo(() => {
+    let filtered = allTasks
+
+    // 按完成状态筛选
     if (activeTab === 'completed') {
-      return allTasks.filter((task) => task.is_completed)
+      filtered = filtered.filter((task) => task.is_completed)
+    } else {
+      filtered = filtered.filter((task) => !task.is_completed)
     }
-    return allTasks.filter((task) => !task.is_completed)
-  }, [allTasks, activeTab])
+
+    // 按标签筛选
+    if (selectedTagId) {
+      filtered = filtered.filter((task) => task.tags?.some((tag) => tag.id === selectedTagId))
+    }
+
+    return filtered
+  }, [allTasks, activeTab, selectedTagId])
 
   // 监听输入内容变化，处理标签自动补全
-  useEffect(() => {
-    const handleTagSuggestion = async () => {
-      const userId = await getCurrentUserId()
-      if (!userId) return
+  const handleInputChange = async (value: string) => {
+    setTaskContent(value)
 
-      // 获取光标前的文本
-      const textBeforeCursor = taskContent.substring(0, cursorPosition)
-      const lastHashIndex = textBeforeCursor.lastIndexOf('#')
+    const userId = await getCurrentUserId()
+    if (!userId) return
 
-      if (lastHashIndex === -1) {
-        setShowTagSelector(false)
-        return
-      }
+    // 检查是否输入了 #
+    const lastChar = value[value.length - 1]
+    const beforeLastChar = value[value.length - 2]
 
-      const textAfterHash = textBeforeCursor.substring(lastHashIndex + 1)
-
-      // 检查 # 后是否有空格，如果有则不显示
-      if (textAfterHash.includes(' ')) {
-        setShowTagSelector(false)
-        return
-      }
-
-      // 如果只输入了 #，显示最近使用的标签
-      if (textAfterHash === '') {
-        const recentTags = await getRecentTags(userId, 10)
-        setSuggestedTags(recentTags)
-        setShowTagSelector(recentTags.length > 0)
-      } else {
-        // 搜索匹配的标签
-        const matchedTags = await searchTags(userId, textAfterHash)
-        setSuggestedTags(matchedTags)
-        setShowTagSelector(matchedTags.length > 0)
-      }
+    // 如果刚输入 #，且前面是空格或开头
+    if (lastChar === '#' && (!beforeLastChar || beforeLastChar === ' ' || beforeLastChar === '\n')) {
+      // 显示所有标签
+      setSuggestedTags(allTags.slice(0, 10))
+      setShowTagSelector(true)
+      return
     }
 
-    handleTagSuggestion()
-  }, [taskContent, cursorPosition])
+    // 检查光标前是否有未完成的标签输入
+    const lastHashIndex = value.lastIndexOf('#')
+    if (lastHashIndex === -1) {
+      setShowTagSelector(false)
+      return
+    }
+
+    const textAfterHash = value.substring(lastHashIndex + 1)
+
+    // 如果 # 后有空格，则不显示
+    if (textAfterHash.includes(' ') || textAfterHash.includes('\n')) {
+      setShowTagSelector(false)
+      return
+    }
+
+    // 搜索匹配的标签
+    if (textAfterHash.length > 0) {
+      const matchedTags = await searchTags(userId, textAfterHash)
+      setSuggestedTags(matchedTags)
+      setShowTagSelector(matchedTags.length > 0)
+    } else {
+      setSuggestedTags(allTags.slice(0, 10))
+      setShowTagSelector(allTags.length > 0)
+    }
+  }
 
   const handleTagSelect = (tag: Tag) => {
-    const textBeforeCursor = taskContent.substring(0, cursorPosition)
-    const textAfterCursor = taskContent.substring(cursorPosition)
-    const lastHashIndex = textBeforeCursor.lastIndexOf('#')
-
+    const lastHashIndex = taskContent.lastIndexOf('#')
     if (lastHashIndex !== -1) {
-      const tagName = getTagFullName(tag)
-      const newText = `${textBeforeCursor.substring(0, lastHashIndex)}#${tagName} ${textAfterCursor}`
-      setTaskContent(newText)
-      setCursorPosition(lastHashIndex + tagName.length + 2)
-    }
+      const beforeHash = taskContent.substring(0, lastHashIndex)
+      const afterHash = taskContent.substring(lastHashIndex + 1)
+      const spaceIndex = afterHash.indexOf(' ')
+      const afterTag = spaceIndex !== -1 ? afterHash.substring(spaceIndex) : ''
 
+      const tagName = getTagFullName(tag)
+      setTaskContent(`${beforeHash}#${tagName} ${afterTag}`)
+    }
     setShowTagSelector(false)
   }
 
@@ -177,7 +217,6 @@ export default function Tasks() {
 
       Taro.showToast({title: '创建成功', icon: 'success'})
       setTaskContent('')
-      setCursorPosition(0)
       loadData()
     } catch (error: any) {
       console.error('创建任务失败:', error)
@@ -192,6 +231,60 @@ export default function Tasks() {
     if (result.success && result.url) {
       const imageTag = `[图片:${result.url}]`
       setTaskContent(taskContent + imageTag)
+    }
+  }
+
+  const handleCreateTag = () => {
+    setEditingTag(null)
+    setShowTagForm(true)
+  }
+
+  const handleEditTag = (tag: Tag) => {
+    setEditingTag(tag)
+    setShowTagForm(true)
+  }
+
+  const handleSaveTag = async (data: {name: string; emoji: string; color: string}) => {
+    try {
+      const userId = await getCurrentUserId()
+      if (!userId) return
+
+      if (editingTag) {
+        // 编辑标签
+        await updateTag(editingTag.id, data)
+        Taro.showToast({title: '更新成功', icon: 'success'})
+      } else {
+        // 新建标签
+        await createTag({
+          user_id: userId,
+          name: data.name,
+          emoji: data.emoji || null,
+          color: data.color,
+          parent_id: null
+        })
+        Taro.showToast({title: '创建成功', icon: 'success'})
+      }
+
+      setShowTagForm(false)
+      setEditingTag(null)
+      loadData()
+    } catch (error: any) {
+      console.error('保存标签失败:', error)
+      Taro.showToast({title: error.message || '保存失败', icon: 'none'})
+    }
+  }
+
+  const handleDeleteTag = async (tagId: string) => {
+    try {
+      await deleteTag(tagId)
+      Taro.showToast({title: '删除成功', icon: 'success'})
+      if (selectedTagId === tagId) {
+        setSelectedTagId(null)
+      }
+      loadData()
+    } catch (error: any) {
+      console.error('删除标签失败:', error)
+      Taro.showToast({title: error.message || '删除失败', icon: 'none'})
     }
   }
 
@@ -224,27 +317,32 @@ export default function Tasks() {
         </View>
       )}
 
-      {/* Tab 切换 */}
-      <View className="bg-card border-b border-border flex">
-        <View
-          className={`flex-1 py-3 text-center ${activeTab === 'ongoing' ? 'border-b-2 border-primary' : ''}`}
-          onClick={() => setActiveTab('ongoing')}>
-          <Text
-            className={`text-base break-keep ${
-              activeTab === 'ongoing' ? 'text-primary font-semibold' : 'text-muted-foreground'
-            }`}>
-            ⏳ 进行中
-          </Text>
+      {/* Tab 切换和标签按钮 */}
+      <View className="bg-card border-b border-border flex items-center">
+        <View className="flex-1 flex">
+          <View
+            className={`flex-1 py-3 text-center ${activeTab === 'ongoing' ? 'border-b-2 border-primary' : ''}`}
+            onClick={() => setActiveTab('ongoing')}>
+            <Text
+              className={`text-base break-keep ${
+                activeTab === 'ongoing' ? 'text-primary font-semibold' : 'text-muted-foreground'
+              }`}>
+              ⏳ 进行中
+            </Text>
+          </View>
+          <View
+            className={`flex-1 py-3 text-center ${activeTab === 'completed' ? 'border-b-2 border-primary' : ''}`}
+            onClick={() => setActiveTab('completed')}>
+            <Text
+              className={`text-base break-keep ${
+                activeTab === 'completed' ? 'text-primary font-semibold' : 'text-muted-foreground'
+              }`}>
+              ✅ 已完成
+            </Text>
+          </View>
         </View>
-        <View
-          className={`flex-1 py-3 text-center ${activeTab === 'completed' ? 'border-b-2 border-primary' : ''}`}
-          onClick={() => setActiveTab('completed')}>
-          <Text
-            className={`text-base break-keep ${
-              activeTab === 'completed' ? 'text-primary font-semibold' : 'text-muted-foreground'
-            }`}>
-            ✅ 已完成
-          </Text>
+        <View className="px-4 py-3" onClick={() => setShowTagDrawer(true)}>
+          <Text className="text-2xl">🏷️</Text>
         </View>
       </View>
 
@@ -260,7 +358,7 @@ export default function Tasks() {
             <View className="flex flex-col items-center justify-center py-20">
               <View className="i-mdi-clipboard-text-outline text-6xl text-muted-foreground mb-4" />
               <Text className="text-muted-foreground">
-                {activeTab === 'completed' ? '暂无已完成任务' : '暂无进行中任务'}
+                {selectedTagId ? '该标签下暂无任务' : activeTab === 'completed' ? '暂无已完成任务' : '暂无进行中任务'}
               </Text>
             </View>
           ) : (
@@ -286,13 +384,12 @@ export default function Tasks() {
                 style={{padding: 0, border: 'none', background: 'transparent', minHeight: '60px'}}
                 placeholder="输入任务内容，使用 #标签 添加标签..."
                 value={taskContent}
-                onInput={(e) => {
-                  setTaskContent(e.detail.value)
-                  setCursorPosition(e.detail.cursor || 0)
-                }}
+                onInput={(e) => handleInputChange(e.detail.value)}
                 onFocus={() => {
-                  // 获取当前光标位置
-                  setCursorPosition(taskContent.length)
+                  // 检查是否有未完成的标签输入
+                  if (taskContent.includes('#')) {
+                    handleInputChange(taskContent)
+                  }
                 }}
                 onBlur={() => {
                   // 延迟隐藏，以便点击标签选择器
@@ -321,6 +418,32 @@ export default function Tasks() {
           </View>
         </View>
       )}
+
+      {/* 标签管理侧边栏 */}
+      <TagDrawer
+        visible={showTagDrawer}
+        tags={allTags}
+        selectedTagId={selectedTagId}
+        onClose={() => setShowTagDrawer(false)}
+        onSelectTag={(tagId) => {
+          setSelectedTagId(tagId)
+          setShowTagDrawer(false)
+        }}
+        onCreateTag={handleCreateTag}
+        onEditTag={handleEditTag}
+        onDeleteTag={handleDeleteTag}
+      />
+
+      {/* 标签编辑表单 */}
+      <TagForm
+        visible={showTagForm}
+        tag={editingTag}
+        onClose={() => {
+          setShowTagForm(false)
+          setEditingTag(null)
+        }}
+        onSave={handleSaveTag}
+      />
     </View>
   )
 }

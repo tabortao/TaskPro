@@ -10,11 +10,6 @@ export interface Profile {
   nickname: string | null
   avatar_url: string | null
   role: UserRole
-  s3_endpoint: string | null
-  s3_access_key: string | null
-  s3_secret_key: string | null
-  s3_bucket: string | null
-  s3_region: string | null
   created_at: string
 }
 
@@ -46,6 +41,8 @@ export interface Tag {
   user_id: string
   name: string
   parent_id: string | null
+  emoji: string | null
+  color: string
   created_at: string
 }
 

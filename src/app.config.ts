@@ -3,7 +3,6 @@ const pages = [
   'pages/tasks/index',
   'pages/profile/index',
   'pages/login/index',
-  'pages/s3-config/index',
   'pages/topic-form/index',
   'pages/archived-topics/index'
 ]

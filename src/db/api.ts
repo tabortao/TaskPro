@@ -194,7 +194,7 @@ export async function findOrCreateTag(userId: string, tagName: string, parentId:
 
   if (existing) return existing as Tag
 
-  // 不存在则创建
+  // 不存在则创建（使用默认颜色）
   const {data, error} = await supabase
     .from('tags')
     .insert({user_id: userId, name: tagName, parent_id: parentId})
@@ -203,6 +203,20 @@ export async function findOrCreateTag(userId: string, tagName: string, parentId:
 
   if (error) throw error
   return data as Tag
+}
+
+export async function updateTag(tagId: string, updates: Partial<Pick<Tag, 'name' | 'emoji' | 'color'>>) {
+  const {data, error} = await supabase.from('tags').update(updates).eq('id', tagId).select().maybeSingle()
+
+  if (error) throw error
+  return data as Tag | null
+}
+
+export async function createTag(tag: Omit<Tag, 'id' | 'created_at'>) {
+  const {data, error} = await supabase.from('tags').insert(tag).select().maybeSingle()
+
+  if (error) throw error
+  return data as Tag | null
 }
 
 export async function deleteTag(tagId: string) {

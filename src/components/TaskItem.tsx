@@ -14,6 +14,9 @@ interface TaskItemProps {
 export default function TaskItem({task, onUpdate}: TaskItemProps) {
   const [showActions, setShowActions] = useState(false)
 
+  // 获取第一个标签的颜色作为底纹
+  const backgroundColor = task.tags && task.tags.length > 0 ? `${task.tags[0].color}15` : 'transparent'
+
   const handleToggleComplete = async () => {
     try {
       await updateTask(task.id, {is_completed: !task.is_completed})
@@ -78,7 +81,7 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
   const highlightedContent = highlightTags(contentWithoutImages)
 
   return (
-    <View className="bg-card rounded-xl p-4 shadow-md border border-border">
+    <View className="bg-card rounded-xl p-4 shadow-md border border-border" style={{backgroundColor}}>
       {/* 任务内容 */}
       <View className="flex items-start gap-3 mb-2">
         {/* 完成状态 */}
@@ -108,8 +111,14 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
           {task.tags && task.tags.length > 0 && (
             <View className="flex flex-wrap gap-2 mt-2">
               {task.tags.map((tag) => (
-                <View key={tag.id} className="bg-accent px-2 py-1 rounded">
-                  <Text className="text-xs text-accent-foreground">#{tag.name}</Text>
+                <View
+                  key={tag.id}
+                  className="px-2 py-1 rounded flex items-center gap-1"
+                  style={{backgroundColor: `${tag.color}30`}}>
+                  {tag.emoji && <Text className="text-xs">{tag.emoji}</Text>}
+                  <Text className="text-xs font-semibold" style={{color: tag.color}}>
+                    #{tag.name}
+                  </Text>
                 </View>
               ))}
             </View>
