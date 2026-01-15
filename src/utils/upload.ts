@@ -4,24 +4,33 @@ import Taro from '@tarojs/taro'
 const MAX_FILE_SIZE = 1024 * 1024 // 1MB
 
 // S3 配置
-const S3_CONFIG = {
-  endpoint: (import.meta as any).env.TARO_APP_S3_ENDPOINT,
-  accessKeyId: (import.meta as any).env.TARO_APP_S3_ACCESS_KEY_ID,
-  secretAccessKey: (import.meta as any).env.TARO_APP_S3_SECRET_ACCESS_KEY,
-  bucket: (import.meta as any).env.TARO_APP_S3_BUCKET,
-  region: (import.meta as any).env.TARO_APP_S3_REGION || 'auto',
-  publicUrl: (import.meta as any).env.TARO_APP_S3_PUBLIC_URL
+function getS3Config() {
+  return {
+    endpoint: (import.meta as any).env.TARO_APP_S3_ENDPOINT,
+    accessKeyId: (import.meta as any).env.TARO_APP_S3_ACCESS_KEY_ID,
+    secretAccessKey: (import.meta as any).env.TARO_APP_S3_SECRET_ACCESS_KEY,
+    bucket: (import.meta as any).env.TARO_APP_S3_BUCKET,
+    region: (import.meta as any).env.TARO_APP_S3_REGION || 'auto',
+    publicUrl: (import.meta as any).env.TARO_APP_S3_PUBLIC_URL
+  }
 }
 
-// 创建 S3 客户端
-const s3Client = new S3Client({
-  endpoint: S3_CONFIG.endpoint,
-  region: S3_CONFIG.region,
-  credentials: {
-    accessKeyId: S3_CONFIG.accessKeyId,
-    secretAccessKey: S3_CONFIG.secretAccessKey
+// 创建 S3 客户端（延迟初始化）
+let s3ClientInstance: S3Client | null = null
+function _getS3Client(): S3Client {
+  if (!s3ClientInstance) {
+    const config = getS3Config()
+    s3ClientInstance = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey
+      }
+    })
   }
-})
+  return s3ClientInstance
+}
 
 export interface UploadFileInput {
   path: string
@@ -75,6 +84,8 @@ async function readFileContent(filePath: string): Promise<ArrayBuffer> {
 // 上传文件到 S3
 export async function uploadFile(file: UploadFileInput): Promise<UploadResult> {
   try {
+    const config = getS3Config()
+
     // 检查文件大小
     let filePath = file.path
     let fileSize = file.size
@@ -128,17 +139,18 @@ export async function uploadFile(file: UploadFileInput): Promise<UploadResult> {
 
     // 上传到 S3
     const command = new PutObjectCommand({
-      Bucket: S3_CONFIG.bucket,
+      Bucket: config.bucket,
       Key: fileName,
       Body: fileContent as any,
       ContentType: 'image/jpeg',
       CacheControl: 'public, max-age=31536000'
     })
 
-    await s3Client.send(command)
+    const s3 = _getS3Client()
+    await s3.send(command)
 
     // 构建公开URL
-    const publicUrl = `${S3_CONFIG.publicUrl}/${fileName}`
+    const publicUrl = `${config.publicUrl}/${fileName}`
 
     return {success: true, url: publicUrl}
   } catch (error: any) {
@@ -194,7 +206,8 @@ export function getImageUrl(pathOrUrl: string): string {
   }
 
   // 否则构建 S3 公开URL
-  return `${S3_CONFIG.publicUrl}/${pathOrUrl}`
+  const config = getS3Config()
+  return `${config.publicUrl}/${pathOrUrl}`
 }
 
 // 导出 uploadImage 作为 chooseAndUploadImage 的简化版本（返回 URL 字符串）
