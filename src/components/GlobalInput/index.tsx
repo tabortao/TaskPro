@@ -37,20 +37,20 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
         const topicName = topicMatch[1]
         taskContent = taskContent.replace(topicMatch[0], '').trim()
 
-        // 查找话题
-        const topics = await getTopics(userId, topicName, false)
+        // 查找话题（搜索所有话题，不限制搜索词）
+        const topics = await getTopics(userId, '', false)
         const foundTopic = topics.find((t) => t.name === topicName)
         if (foundTopic) {
           targetTopicId = foundTopic.id
         } else {
-          Taro.showToast({title: `话题"${topicName}"不存在`, icon: 'none'})
+          Taro.showToast({title: `话题"${topicName}"不存在`, icon: 'none', duration: 2000})
           return
         }
       }
 
       // 如果没有指定话题，提示用户
       if (!targetTopicId) {
-        Taro.showToast({title: '请指定话题（@话题名称）', icon: 'none'})
+        Taro.showToast({title: '请指定话题（@话题名称）', icon: 'none', duration: 2000})
         return
       }
 
@@ -60,6 +60,12 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
         tagMatches.push(tag)
         taskContent = taskContent.replace(`#${tag}`, '').trim()
       })
+
+      // 处理 Markdown 图片语法：![alt](url) 转换为 [图片:url]
+      taskContent = taskContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '[图片:$2]')
+
+      // 处理 Markdown 超链接语法：[text](url) 转换为 text (url)
+      taskContent = taskContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
 
       // 创建任务
       const task = await createTask({
@@ -105,22 +111,20 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
   }
 
   return (
-    <View className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-30">
+    <View className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-3 z-30">
       <View className="flex items-end gap-2">
-        <View className="flex-1 bg-input rounded-lg border border-border px-3 py-2">
-          <Textarea
-            className="w-full text-foreground text-sm"
-            style={{minHeight: '40px', maxHeight: '120px', padding: 0, border: 'none', background: 'transparent'}}
-            placeholder={topicId ? '输入 #标签 内容' : '输入 @话题名称 #标签 内容'}
-            value={content}
-            onInput={(e) => setContent(e.detail.value)}
-            onConfirm={handleSubmit}
-            autoHeight
-            maxlength={500}
-          />
-        </View>
+        <Textarea
+          className="flex-1 text-foreground text-sm bg-transparent px-3 py-2 rounded-lg border border-border"
+          style={{minHeight: '44px', maxHeight: '120px'}}
+          placeholder={topicId ? '输入 #标签 内容' : '输入 @话题名称 #标签 内容'}
+          value={content}
+          onInput={(e) => setContent(e.detail.value)}
+          onConfirm={handleSubmit}
+          autoHeight
+          maxlength={500}
+        />
         <View
-          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${
             content.trim() && !submitting ? 'bg-primary' : 'bg-muted'
           }`}
           onClick={handleSubmit}>
@@ -128,11 +132,6 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
             className={`i-mdi-send text-xl ${content.trim() && !submitting ? 'text-primary-foreground' : 'text-muted-foreground'}`}
           />
         </View>
-      </View>
-      <View className="mt-2 text-xs text-muted-foreground">
-        {topicId
-          ? '提示：支持 #标签 和 Markdown 图片语法 ![](url)'
-          : '提示：支持 @话题 #标签 和 Markdown 图片语法 ![](url)'}
       </View>
     </View>
   )

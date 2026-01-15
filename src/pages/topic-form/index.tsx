@@ -1,19 +1,19 @@
-import {Button, Image, Input, Text, Textarea, View} from '@tarojs/components'
+import {Button, Input, ScrollView, Text, Textarea, View} from '@tarojs/components'
 import Taro, {useDidShow, useLoad} from '@tarojs/taro'
 import {useCallback, useState} from 'react'
+import EmojiPicker from '@/components/EmojiPicker'
 import {createTopic, deleteTopic, getTopic, updateTopic} from '@/db/api'
 import {authGuard, getCurrentUserId} from '@/utils/auth'
-import {chooseAndUploadImage, getImageUrl} from '@/utils/upload'
-import './index.scss'
 
 export default function TopicForm() {
   const [topicId, setTopicId] = useState('')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [iconUrl, setIconUrl] = useState('')
+  const [iconEmoji, setIconEmoji] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   useLoad((options) => {
     if (options.topicId) {
@@ -32,7 +32,7 @@ export default function TopicForm() {
       if (data) {
         setName(data.name)
         setDescription(data.description || '')
-        setIconUrl(data.icon_url || '')
+        setIconEmoji(data.icon_url || '')
       }
     } catch (error) {
       console.error('加载话题失败:', error)
@@ -51,13 +51,6 @@ export default function TopicForm() {
     })
   })
 
-  const handleChooseIcon = async () => {
-    const result = await chooseAndUploadImage()
-    if (result.success && result.url) {
-      setIconUrl(result.url)
-    }
-  }
-
   const handleSave = async () => {
     if (!name.trim()) {
       Taro.showToast({title: '请输入话题名称', icon: 'none'})
@@ -74,7 +67,7 @@ export default function TopicForm() {
         await updateTopic(topicId, {
           name,
           description: description || null,
-          icon_url: iconUrl || null
+          icon_url: iconEmoji || null
         })
         Taro.showToast({title: '更新成功', icon: 'success'})
       } else {
@@ -82,7 +75,7 @@ export default function TopicForm() {
           user_id: userId,
           name,
           description: description || null,
-          icon_url: iconUrl || null,
+          icon_url: iconEmoji || null,
           is_archived: false
         })
         Taro.showToast({title: '创建成功', icon: 'success'})
@@ -108,135 +101,110 @@ export default function TopicForm() {
           try {
             await deleteTopic(topicId)
             Taro.showToast({title: '删除成功', icon: 'success'})
-
             setTimeout(() => {
               Taro.navigateBack()
             }, 500)
-          } catch (error: any) {
+          } catch (error) {
             console.error('删除失败:', error)
-            Taro.showToast({title: error.message || '删除失败', icon: 'none'})
+            Taro.showToast({title: '删除失败', icon: 'none'})
           }
         }
       }
     })
   }
 
-  const handleArchive = () => {
-    Taro.showModal({
-      title: '确认归档',
-      content: '归档后的话题将不在话题列表显示，且不能创建新任务，确定要归档吗？',
-      success: async (res) => {
-        if (res.confirm) {
-          try {
-            await updateTopic(topicId, {is_archived: true})
-            Taro.showToast({title: '归档成功', icon: 'success'})
-
-            setTimeout(() => {
-              Taro.navigateBack()
-            }, 500)
-          } catch (error: any) {
-            console.error('归档失败:', error)
-            Taro.showToast({title: error.message || '归档失败', icon: 'none'})
-          }
-        }
-      }
-    })
+  if (loading) {
+    return (
+      <View className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <View className="i-mdi-loading animate-spin text-4xl text-primary" />
+      </View>
+    )
   }
 
   return (
-    <View className="min-h-screen bg-gradient-subtle p-4">
-      {loading ? (
-        <View className="flex flex-col items-center justify-center py-20">
-          <View className="i-mdi-loading animate-spin text-4xl text-primary mb-2" />
-          <Text className="text-muted-foreground">加载中...</Text>
-        </View>
-      ) : (
-        <View>
-          {/* 表单 */}
-          <View className="bg-card rounded-xl p-4 mb-4 shadow-lg">
-            {/* 话题图标 */}
-            <View className="mb-4">
-              <Text className="text-sm font-semibold text-foreground mb-2">话题图标</Text>
-              <View className="flex items-center gap-4">
-                {iconUrl ? (
-                  <Image src={getImageUrl(iconUrl)} className="w-20 h-20 rounded-lg" mode="aspectFill" />
-                ) : (
-                  <View className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
-                    <View className="i-mdi-image text-3xl text-muted-foreground" />
-                  </View>
-                )}
-                <Button
-                  className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg break-keep text-sm"
-                  size="mini"
-                  onClick={handleChooseIcon}>
-                  {iconUrl ? '更换图标' : '选择图标'}
-                </Button>
-              </View>
+    <ScrollView scrollY className="min-h-screen bg-gradient-subtle">
+      <View className="p-4 space-y-4">
+        <View className="bg-card rounded-xl p-4 border border-border">
+          <Text className="text-sm text-muted-foreground mb-2">话题图标</Text>
+          <View className="flex items-center gap-4">
+            <View
+              className="w-20 h-20 bg-gradient-primary rounded-xl flex items-center justify-center cursor-pointer"
+              onClick={() => setShowEmojiPicker(true)}>
+              {iconEmoji ? (
+                <Text className="text-4xl">{iconEmoji}</Text>
+              ) : (
+                <View className="i-mdi-emoticon-outline text-4xl text-white" />
+              )}
             </View>
-
-            {/* 话题名称 */}
-            <View className="mb-4">
-              <Text className="text-sm font-semibold text-foreground mb-2">话题名称 *</Text>
-              <View className="bg-input rounded-lg border border-border px-3 py-2">
-                <Input
-                  className="w-full text-foreground"
-                  style={{padding: 0, border: 'none', background: 'transparent'}}
-                  placeholder="请输入话题名称"
-                  value={name}
-                  onInput={(e) => setName(e.detail.value)}
-                  maxlength={50}
-                  disabled={saving}
-                />
-              </View>
-            </View>
-
-            {/* 话题简介 */}
-            <View className="mb-4">
-              <Text className="text-sm font-semibold text-foreground mb-2">话题简介</Text>
-              <View className="bg-input rounded-lg border border-border px-3 py-2">
-                <Textarea
-                  className="w-full text-foreground"
-                  style={{padding: 0, border: 'none', background: 'transparent', minHeight: '80px'}}
-                  placeholder="请输入话题简介（可选）"
-                  value={description}
-                  onInput={(e) => setDescription(e.detail.value)}
-                  maxlength={200}
-                  autoHeight
-                  disabled={saving}
-                />
-              </View>
+            <View className="flex-1">
+              <Text className="text-sm text-foreground mb-1">点击选择 Emoji 图标</Text>
+              <Text className="text-xs text-muted-foreground">或直接在下方输入框输入 Emoji</Text>
             </View>
           </View>
+          <View className="mt-3">
+            <Input
+              className="w-full bg-input rounded-lg border border-border px-3 py-2 text-foreground"
+              placeholder="或直接输入 Emoji"
+              value={iconEmoji}
+              onInput={(e) => setIconEmoji(e.detail.value)}
+            />
+          </View>
+        </View>
 
-          {/* 操作按钮 */}
-          <View className="flex flex-col gap-3">
+        <View className="bg-card rounded-xl p-4 border border-border">
+          <Text className="text-sm text-muted-foreground mb-2">话题名称 *</Text>
+          <Input
+            className="w-full bg-input rounded-lg border border-border px-3 py-2 text-foreground"
+            placeholder="请输入话题名称"
+            value={name}
+            onInput={(e) => setName(e.detail.value)}
+            maxlength={50}
+          />
+        </View>
+
+        <View className="bg-card rounded-xl p-4 border border-border">
+          <Text className="text-sm text-muted-foreground mb-2">话题描述</Text>
+          <View className="bg-input rounded-lg border border-border px-3 py-2">
+            <Textarea
+              className="w-full text-foreground"
+              style={{minHeight: '80px', padding: 0, border: 'none', background: 'transparent'}}
+              placeholder="请输入话题描述（可选）"
+              value={description}
+              onInput={(e) => setDescription(e.detail.value)}
+              maxlength={200}
+            />
+          </View>
+        </View>
+
+        <View className="flex gap-3 pt-4">
+          <Button
+            className="flex-1 bg-primary text-white py-4 rounded-xl break-keep text-base"
+            size="default"
+            onClick={handleSave}
+            disabled={saving}>
+            {saving ? '保存中...' : isEdit ? '更新话题' : '创建话题'}
+          </Button>
+          {isEdit && (
             <Button
-              className="w-full bg-primary text-white py-4 rounded-xl break-keep text-base"
+              className="bg-destructive text-destructive-foreground py-4 px-6 rounded-xl break-keep text-base"
               size="default"
-              onClick={saving ? undefined : handleSave}>
-              {saving ? '保存中...' : isEdit ? '保存修改' : '创建话题'}
+              onClick={handleDelete}>
+              删除
             </Button>
-
-            {isEdit && (
-              <>
-                <Button
-                  className="w-full bg-secondary text-secondary-foreground py-4 rounded-xl break-keep text-base"
-                  size="default"
-                  onClick={handleArchive}>
-                  归档话题
-                </Button>
-
-                <Button
-                  className="w-full bg-destructive text-white py-4 rounded-xl break-keep text-base"
-                  size="default"
-                  onClick={handleDelete}>
-                  删除话题
-                </Button>
-              </>
-            )}
-          </View>
+          )}
         </View>
+      </View>
+
+      {showEmojiPicker && (
+        <EmojiPicker
+          selectedEmoji={iconEmoji}
+          onSelect={(emoji) => {
+            setIconEmoji(emoji)
+            setShowEmojiPicker(false)
+          }}
+          onClose={() => setShowEmojiPicker(false)}
+        />
       )}
-    </View>
+    </ScrollView>
   )
 }

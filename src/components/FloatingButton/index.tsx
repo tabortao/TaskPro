@@ -1,12 +1,12 @@
 // 可拖动悬浮按钮组件
 import {View} from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 interface FloatingButtonProps {
-  icon?: string // MDI 图标类名
+  icon?: string
   onClick?: () => void
-  storageKey?: string // 用于持久化位置的 key
+  storageKey?: string
 }
 
 export default function FloatingButton({
@@ -16,9 +16,9 @@ export default function FloatingButton({
 }: FloatingButtonProps) {
   const [position, setPosition] = useState({x: 300, y: 500})
   const [isDragging, setIsDragging] = useState(false)
-  const [startPos, setStartPos] = useState({x: 0, y: 0})
+  const dragStartTime = useRef(0)
+  const startPos = useRef({x: 0, y: 0})
 
-  // 加载保存的位置
   useEffect(() => {
     try {
       const saved = Taro.getStorageSync(storageKey)
@@ -30,7 +30,6 @@ export default function FloatingButton({
     }
   }, [storageKey])
 
-  // 保存位置
   const savePosition = (pos: {x: number; y: number}) => {
     try {
       Taro.setStorageSync(storageKey, JSON.stringify(pos))
@@ -42,37 +41,30 @@ export default function FloatingButton({
   const handleTouchStart = (e: any) => {
     const touch = e.touches[0]
     setIsDragging(true)
-    setStartPos({
+    dragStartTime.current = Date.now()
+    startPos.current = {
       x: touch.clientX - position.x,
       y: touch.clientY - position.y
-    })
+    }
   }
 
   const handleTouchMove = (e: any) => {
     if (!isDragging) return
-
     const touch = e.touches[0]
-    const newX = touch.clientX - startPos.x
-    const newY = touch.clientY - startPos.y
-
-    // 获取屏幕尺寸
+    const newX = touch.clientX - startPos.current.x
+    const newY = touch.clientY - startPos.current.y
     const {windowWidth, windowHeight} = Taro.getSystemInfoSync()
-    const buttonSize = 56 // 按钮大小
-
-    // 限制在屏幕范围内
+    const buttonSize = 56
     const boundedX = Math.max(0, Math.min(newX, windowWidth - buttonSize))
     const boundedY = Math.max(0, Math.min(newY, windowHeight - buttonSize))
-
     setPosition({x: boundedX, y: boundedY})
   }
 
   const handleTouchEnd = () => {
+    const dragDuration = Date.now() - dragStartTime.current
     setIsDragging(false)
     savePosition(position)
-  }
-
-  const handleClick = () => {
-    if (!isDragging) {
+    if (dragDuration < 200) {
       onClick?.()
     }
   }
@@ -83,12 +75,12 @@ export default function FloatingButton({
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
-        transition: isDragging ? 'none' : 'all 0.3s ease'
+        transition: isDragging ? 'none' : 'all 0.3s ease',
+        cursor: 'move'
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onClick={handleClick}>
+      onTouchEnd={handleTouchEnd}>
       <View className={`${icon} text-3xl text-primary-foreground`} />
     </View>
   )
