@@ -196,3 +196,27 @@ export function getImageUrl(pathOrUrl: string): string {
   // 否则构建 S3 公开URL
   return `${S3_CONFIG.publicUrl}/${pathOrUrl}`
 }
+
+// 导出 uploadImage 作为 chooseAndUploadImage 的简化版本（返回 URL 字符串）
+export async function uploadImage(filePath?: string): Promise<string> {
+  if (filePath) {
+    // 如果提供了文件路径，直接上传
+    const uploadFileInput: UploadFileInput = {
+      path: filePath,
+      size: 0,
+      name: `image_${Date.now()}.jpg`
+    }
+    const result = await uploadFile(uploadFileInput)
+    if (result.success && result.url) {
+      return result.url
+    }
+    throw new Error(result.error || '上传失败')
+  } else {
+    // 否则选择并上传
+    const result = await chooseAndUploadImage()
+    if (result.success && result.url) {
+      return result.url
+    }
+    throw new Error(result.error || '上传失败')
+  }
+}

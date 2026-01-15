@@ -308,9 +308,6 @@ export default function Tasks() {
             )}
             <View className="flex-1">
               <Text className="text-lg font-bold text-foreground break-keep">{topic.name}</Text>
-              {topic.description && (
-                <Text className="text-sm text-muted-foreground mt-1 break-keep">{topic.description}</Text>
-              )}
               {topic.is_archived && (
                 <View className="flex items-center gap-1 mt-1">
                   <View className="i-mdi-archive text-xs text-muted-foreground" />
@@ -319,6 +316,9 @@ export default function Tasks() {
               )}
             </View>
           </View>
+          {topic.description && (
+            <Text className="text-sm text-muted-foreground mt-2 break-keep">{topic.description}</Text>
+          )}
         </View>
       )}
 

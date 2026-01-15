@@ -67,6 +67,23 @@ export interface TaskWithTags extends Task {
   attachments?: Attachment[]
 }
 
+export interface Comment {
+  id: string
+  task_id: string
+  user_id: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CommentWithUser extends Comment {
+  user?: {
+    id: string
+    nickname?: string
+    avatar?: string
+  }
+}
+
 export interface TagWithParent extends Tag {
   parent?: Tag | null
 }

@@ -26,7 +26,13 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
     }
   }
 
-  const handleTogglePin = async () => {
+  const handleCompleteClick = (e: any) => {
+    e.stopPropagation()
+    handleToggleComplete()
+  }
+
+  const handleTogglePin = async (e: any) => {
+    e.stopPropagation()
     try {
       await updateTask(task.id, {is_pinned: !task.is_pinned})
       Taro.showToast({title: task.is_pinned ? '取消置顶' : '已置顶', icon: 'success'})
@@ -37,7 +43,8 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
     }
   }
 
-  const handleToggleFavorite = async () => {
+  const handleToggleFavorite = async (e: any) => {
+    e.stopPropagation()
     try {
       await updateTask(task.id, {is_favorite: !task.is_favorite})
       Taro.showToast({title: task.is_favorite ? '取消收藏' : '已收藏', icon: 'success'})
@@ -48,7 +55,8 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
     }
   }
 
-  const handleDelete = () => {
+  const handleDelete = (e: any) => {
+    e.stopPropagation()
     Taro.showModal({
       title: '确认删除',
       content: '确定要删除这个任务吗？',
@@ -67,6 +75,11 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
     })
   }
 
+  const handleMoreClick = (e: any) => {
+    e.stopPropagation()
+    setShowActions(!showActions)
+  }
+
   // 解析内容中的图片
   const imageRegex = /\[图片:(https?:\/\/[^\]]+)\]/g
   const images: string[] = []
@@ -80,8 +93,22 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
   // 移除 #标签 和 #标签/子标签 格式
   contentWithoutImagesAndTags = contentWithoutImagesAndTags.replace(/#[^\s#]+/g, '').trim()
 
+  // 内容截断（超过100字符显示省略号）
+  const displayContent =
+    contentWithoutImagesAndTags.length > 100
+      ? `${contentWithoutImagesAndTags.substring(0, 100)}...`
+      : contentWithoutImagesAndTags
+
+  // 点击任务卡片进入详情
+  const handleCardClick = () => {
+    Taro.navigateTo({url: `/pages/task-detail/index?taskId=${task.id}`})
+  }
+
   return (
-    <View className="bg-card rounded-xl p-4 shadow-md border border-border" style={{backgroundColor}}>
+    <View
+      className="bg-card rounded-xl p-4 shadow-md border border-border"
+      style={{backgroundColor}}
+      onClick={handleCardClick}>
       {/* 任务内容 */}
       <View className="flex items-start gap-3 mb-2">
         {/* 完成状态 */}
@@ -89,7 +116,7 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
           className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-0.5 ${
             task.is_completed ? 'bg-primary border-primary' : 'border-border'
           }`}
-          onClick={handleToggleComplete}>
+          onClick={handleCompleteClick}>
           {task.is_completed && <View className="i-mdi-check text-white text-sm" />}
         </View>
 
@@ -99,7 +126,7 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
             className={`text-base break-keep ${
               task.is_completed ? 'line-through text-muted-foreground' : 'text-foreground'
             }`}>
-            {contentWithoutImagesAndTags}
+            {displayContent}
           </Text>
 
           {/* 标签 */}
@@ -153,9 +180,7 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
         </View>
 
         {/* 更多操作 */}
-        <View
-          className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center"
-          onClick={() => setShowActions(!showActions)}>
+        <View className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center" onClick={handleMoreClick}>
           <View className="i-mdi-dots-vertical text-lg text-secondary-foreground" />
         </View>
       </View>

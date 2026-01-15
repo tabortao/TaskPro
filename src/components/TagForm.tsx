@@ -1,5 +1,5 @@
 import {Button, Input, Text, View} from '@tarojs/components'
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import type {Tag} from '@/db/types'
 
 interface TagFormProps {
@@ -27,9 +27,22 @@ const PRESET_COLORS = [
 const COMMON_EMOJIS = ['📌', '⭐', '🔥', '💡', '📝', '🎯', '✅', '⚡', '🚀', '💼', '🏠', '🎨', '📚', '💰', '🎮']
 
 export default function TagForm({visible, tag, onClose, onSave}: TagFormProps) {
-  const [name, setName] = useState(tag?.name || '')
-  const [emoji, setEmoji] = useState(tag?.emoji || '')
-  const [color, setColor] = useState(tag?.color || '#4A90E2')
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('')
+  const [color, setColor] = useState('#4A90E2')
+
+  // 当 tag 变化时更新表单
+  useEffect(() => {
+    if (tag) {
+      setName(tag.name || '')
+      setEmoji(tag.emoji || '')
+      setColor(tag.color || '#4A90E2')
+    } else {
+      setName('')
+      setEmoji('')
+      setColor('#4A90E2')
+    }
+  }, [tag])
 
   if (!visible) return null
 

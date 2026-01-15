@@ -1,5 +1,5 @@
 import {supabase} from '@/client/supabase'
-import type {Attachment, Profile, Tag, Task, TaskWithTags, Topic} from './types'
+import type {Attachment, Comment, CommentWithUser, Profile, Tag, Task, TaskWithTags, Topic} from './types'
 
 // ==================== Profile API ====================
 
@@ -127,6 +127,32 @@ export async function deleteTask(taskId: string) {
   const {error} = await supabase.from('tasks').delete().eq('id', taskId)
 
   if (error) throw error
+}
+
+export async function getTaskById(taskId: string) {
+  const {data, error} = await supabase
+    .from('tasks')
+    .select(
+      `
+      *,
+      tags:task_tags(tag:tags(*)),
+      attachments(*)
+    `
+    )
+    .eq('id', taskId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  // 转换数据结构
+  const task: TaskWithTags = {
+    ...data,
+    tags: data.tags?.map((t: any) => t.tag).filter(Boolean) || [],
+    attachments: data.attachments || []
+  }
+
+  return task
 }
 
 // ==================== Tag API ====================
@@ -258,6 +284,44 @@ export async function createTag(tag: Omit<Tag, 'id' | 'created_at'>) {
 
 export async function deleteTag(tagId: string) {
   const {error} = await supabase.from('tags').delete().eq('id', tagId)
+
+  if (error) throw error
+}
+
+// ==================== 评论相关 API ====================
+
+export async function getCommentsByTaskId(taskId: string) {
+  const {data, error} = await supabase
+    .from('comments')
+    .select('*, user:user_id(id, nickname, avatar)')
+    .eq('task_id', taskId)
+    .order('created_at', {ascending: true})
+
+  if (error) throw error
+  return (data || []) as CommentWithUser[]
+}
+
+export async function createComment(comment: Omit<Comment, 'id' | 'created_at' | 'updated_at'>) {
+  const {data, error} = await supabase.from('comments').insert(comment).select().maybeSingle()
+
+  if (error) throw error
+  return data as Comment | null
+}
+
+export async function updateComment(commentId: string, content: string) {
+  const {data, error} = await supabase
+    .from('comments')
+    .update({content, updated_at: new Date().toISOString()})
+    .eq('id', commentId)
+    .select()
+    .maybeSingle()
+
+  if (error) throw error
+  return data as Comment | null
+}
+
+export async function deleteComment(commentId: string) {
+  const {error} = await supabase.from('comments').delete().eq('id', commentId)
 
   if (error) throw error
 }

@@ -1,9 +1,10 @@
-import {Button, ScrollView, Text, View} from '@tarojs/components'
+import {Button, Image, ScrollView, Text, View} from '@tarojs/components'
 import Taro, {useDidShow} from '@tarojs/taro'
 import {useCallback, useState} from 'react'
 import {getProfile} from '@/db/api'
 import type {Profile} from '@/db/types'
 import {authGuard, getCurrentUserId, logout} from '@/utils/auth'
+import {getImageUrl} from '@/utils/upload'
 import './index.scss'
 
 export default function ProfilePage() {
@@ -61,7 +62,19 @@ export default function ProfilePage() {
             <View className="bg-gradient-card rounded-xl p-6 mb-4 shadow-lg">
               <View className="flex items-center gap-4 mb-4">
                 <View className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center">
-                  <View className="i-mdi-account text-4xl text-white" />
+                  {profile?.avatar_url ? (
+                    profile.avatar_url.startsWith('emoji:') ? (
+                      <Text className="text-4xl">{profile.avatar_url.replace('emoji:', '')}</Text>
+                    ) : (
+                      <Image
+                        src={getImageUrl(profile.avatar_url)}
+                        className="w-16 h-16 rounded-full"
+                        mode="aspectFill"
+                      />
+                    )
+                  ) : (
+                    <View className="i-mdi-account text-4xl text-white" />
+                  )}
                 </View>
                 <View className="flex-1">
                   <Text className="text-xl font-bold text-foreground">
@@ -70,6 +83,12 @@ export default function ProfilePage() {
                   <Text className="text-sm text-muted-foreground mt-1">
                     {profile?.role === 'admin' ? '管理员' : '普通用户'}
                   </Text>
+                </View>
+                {/* 编辑按钮 */}
+                <View
+                  className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center"
+                  onClick={() => Taro.navigateTo({url: '/pages/profile-edit/index'})}>
+                  <View className="i-mdi-pencil text-xl text-secondary-foreground" />
                 </View>
               </View>
 

@@ -4,7 +4,9 @@ const pages = [
   'pages/profile/index',
   'pages/login/index',
   'pages/topic-form/index',
-  'pages/archived-topics/index'
+  'pages/archived-topics/index',
+  'pages/task-detail/index',
+  'pages/profile-edit/index'
 ]
 
 export default defineAppConfig({
