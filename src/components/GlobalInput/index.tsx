@@ -2,7 +2,10 @@
 import {Textarea, View} from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import {useState} from 'react'
-import {createComment, createTask, findOrCreateTag, getTopics} from '@/db/api'
+import TagSelector from '@/components/TagSelector'
+import TopicSelector from '@/components/TopicSelector'
+import {createComment, createTask, findOrCreateTag, getTags, getTopics} from '@/db/api'
+import type {Tag, Topic} from '@/db/types'
 import {getCurrentUserId} from '@/utils/auth'
 import {parseTagsFromContent} from '@/utils/tags'
 
@@ -23,6 +26,74 @@ export default function GlobalInput({
 }: GlobalInputProps) {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // 话题和标签选择器状态
+  const [showTopicSelector, setShowTopicSelector] = useState(false)
+  const [showTagSelector, setShowTagSelector] = useState(false)
+  const [suggestedTopics, setSuggestedTopics] = useState<Topic[]>([])
+  const [suggestedTags, setSuggestedTags] = useState<Tag[]>([])
+
+  // 处理输入变化
+  const handleInputChange = async (value: string) => {
+    setContent(value)
+
+    // 评论模式不需要自动补全
+    if (mode === 'comment') return
+
+    const userId = await getCurrentUserId()
+    if (!userId) return
+
+    // 检查是否输入了 @
+    const atMatch = value.match(/@([^\s#]*)$/)
+    if (atMatch) {
+      const searchText = atMatch[1]
+      const topics = await getTopics(userId, searchText, false)
+      setSuggestedTopics(topics.slice(0, 5))
+      setShowTopicSelector(topics.length > 0)
+      setShowTagSelector(false)
+      return
+    }
+
+    // 检查是否输入了 #
+    const hashMatch = value.match(/#([^\s@]*)$/)
+    if (hashMatch) {
+      const searchText = hashMatch[1]
+      // 获取所有标签
+      const allTags = await getTags(userId)
+      // 过滤匹配的标签
+      const matchedTags = searchText
+        ? allTags.filter((tag) => tag.name.toLowerCase().includes(searchText.toLowerCase()))
+        : allTags
+      setSuggestedTags(matchedTags.slice(0, 10))
+      setShowTagSelector(matchedTags.length > 0)
+      setShowTopicSelector(false)
+      return
+    }
+
+    // 没有匹配，隐藏选择器
+    setShowTopicSelector(false)
+    setShowTagSelector(false)
+  }
+
+  // 选择话题
+  const handleSelectTopic = (topic: Topic) => {
+    const atMatch = content.match(/@([^\s#]*)$/)
+    if (atMatch) {
+      const beforeAt = content.substring(0, content.lastIndexOf('@'))
+      setContent(`${beforeAt}@${topic.name} `)
+    }
+    setShowTopicSelector(false)
+  }
+
+  // 选择标签
+  const handleSelectTag = (tag: Tag) => {
+    const hashMatch = content.match(/#([^\s@]*)$/)
+    if (hashMatch) {
+      const beforeHash = content.substring(0, content.lastIndexOf('#'))
+      setContent(`${beforeHash}#${tag.name} `)
+    }
+    setShowTagSelector(false)
+  }
 
   const handleSubmitComment = async () => {
     if (!content.trim() || !taskId) return
@@ -186,14 +257,27 @@ export default function GlobalInput({
 
   return (
     <View className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-3 z-30">
+      {/* 话题选择器 */}
+      <TopicSelector topics={suggestedTopics} visible={showTopicSelector} onSelect={handleSelectTopic} />
+
+      {/* 标签选择器 */}
+      <TagSelector tags={suggestedTags} visible={showTagSelector} onSelect={handleSelectTag} />
+
       <View className="flex items-end gap-2">
         <Textarea
           className="flex-1 text-foreground text-sm bg-transparent px-3 py-2 rounded-lg border border-border"
           style={{minHeight: '44px', maxHeight: '120px'}}
           placeholder={placeholder}
           value={content}
-          onInput={(e) => setContent(e.detail.value)}
+          onInput={(e) => handleInputChange(e.detail.value)}
           onConfirm={handleSubmit}
+          onBlur={() => {
+            // 延迟隐藏，以便点击选择器
+            setTimeout(() => {
+              setShowTopicSelector(false)
+              setShowTagSelector(false)
+            }, 200)
+          }}
           autoHeight
           maxlength={500}
         />
