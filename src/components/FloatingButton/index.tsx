@@ -16,8 +16,9 @@ export default function FloatingButton({
 }: FloatingButtonProps) {
   const [position, setPosition] = useState({x: 300, y: 500})
   const [isDragging, setIsDragging] = useState(false)
-  const dragStartTime = useRef(0)
+  const hasMoved = useRef(false)
   const startPos = useRef({x: 0, y: 0})
+  const startTouchPos = useRef({x: 0, y: 0})
 
   useEffect(() => {
     try {
@@ -41,16 +42,30 @@ export default function FloatingButton({
   const handleTouchStart = (e: any) => {
     const touch = e.touches[0]
     setIsDragging(true)
-    dragStartTime.current = Date.now()
+    hasMoved.current = false
     startPos.current = {
       x: touch.clientX - position.x,
       y: touch.clientY - position.y
+    }
+    startTouchPos.current = {
+      x: touch.clientX,
+      y: touch.clientY
     }
   }
 
   const handleTouchMove = (e: any) => {
     if (!isDragging) return
     const touch = e.touches[0]
+
+    // 计算移动距离
+    const moveX = Math.abs(touch.clientX - startTouchPos.current.x)
+    const moveY = Math.abs(touch.clientY - startTouchPos.current.y)
+
+    // 如果移动超过 5px，认为是拖动
+    if (moveX > 5 || moveY > 5) {
+      hasMoved.current = true
+    }
+
     const newX = touch.clientX - startPos.current.x
     const newY = touch.clientY - startPos.current.y
     const {windowWidth, windowHeight} = Taro.getSystemInfoSync()
@@ -61,10 +76,11 @@ export default function FloatingButton({
   }
 
   const handleTouchEnd = () => {
-    const dragDuration = Date.now() - dragStartTime.current
     setIsDragging(false)
     savePosition(position)
-    if (dragDuration < 200) {
+
+    // 如果没有移动，认为是点击
+    if (!hasMoved.current) {
       onClick?.()
     }
   }

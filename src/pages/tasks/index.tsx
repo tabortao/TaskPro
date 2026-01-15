@@ -1,26 +1,14 @@
-import {Image, ScrollView, Text, Textarea, View} from '@tarojs/components'
+import {Image, ScrollView, Text, View} from '@tarojs/components'
 import Taro, {useDidShow, useLoad} from '@tarojs/taro'
 import {useCallback, useMemo, useState} from 'react'
+import GlobalInput from '@/components/GlobalInput'
 import TagDrawer from '@/components/TagDrawer'
 import TagForm from '@/components/TagForm'
-import TagSelector from '@/components/TagSelector'
 import TaskItem from '@/components/TaskItem'
-import {
-  addTaskTags,
-  createTag,
-  createTask,
-  deleteTag,
-  findOrCreateTag,
-  getTags,
-  getTasks,
-  getTopic,
-  searchTags,
-  updateTag
-} from '@/db/api'
+import {createTag, deleteTag, getTags, getTasks, getTopic, updateTag} from '@/db/api'
 import type {Tag, TaskWithTags, Topic} from '@/db/types'
 import {authGuard, getCurrentUserId} from '@/utils/auth'
-import {getTagFullName, parseTagHierarchy, parseTagsFromContent} from '@/utils/tags'
-import {chooseAndUploadImage, getImageUrl} from '@/utils/upload'
+import {getImageUrl} from '@/utils/upload'
 import './index.scss'
 
 type TabType = 'ongoing' | 'completed'
@@ -28,9 +16,7 @@ type TabType = 'ongoing' | 'completed'
 export default function Tasks() {
   const [topic, setTopic] = useState<Topic | null>(null)
   const [allTasks, setAllTasks] = useState<TaskWithTags[]>([])
-  const [taskContent, setTaskContent] = useState('')
   const [loading, setLoading] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [topicId, setTopicId] = useState('')
   const [activeTab, setActiveTab] = useState<TabType>('ongoing')
 
@@ -41,10 +27,6 @@ export default function Tasks() {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'favorite' | string>('all') // 'all' | 'favorite' | tagId
   const [showTagForm, setShowTagForm] = useState(false)
   const [editingTag, setEditingTag] = useState<Tag | null>(null)
-
-  // 标签自动补全相关状态
-  const [showTagSelector, setShowTagSelector] = useState(false)
-  const [suggestedTags, setSuggestedTags] = useState<Tag[]>([])
 
   useLoad((options) => {
     if (options.topicId) {
@@ -110,134 +92,6 @@ export default function Tasks() {
   }, [allTasks, activeTab, selectedFilter])
 
   // 监听输入内容变化，处理标签自动补全
-  const handleInputChange = async (value: string) => {
-    setTaskContent(value)
-
-    const userId = await getCurrentUserId()
-    if (!userId) return
-
-    // 检查是否输入了 #
-    const lastChar = value[value.length - 1]
-    const beforeLastChar = value[value.length - 2]
-
-    // 如果刚输入 #，且前面是空格或开头
-    if (lastChar === '#' && (!beforeLastChar || beforeLastChar === ' ' || beforeLastChar === '\n')) {
-      // 显示所有标签
-      setSuggestedTags(allTags.slice(0, 10))
-      setShowTagSelector(true)
-      return
-    }
-
-    // 检查光标前是否有未完成的标签输入
-    const lastHashIndex = value.lastIndexOf('#')
-    if (lastHashIndex === -1) {
-      setShowTagSelector(false)
-      return
-    }
-
-    const textAfterHash = value.substring(lastHashIndex + 1)
-
-    // 如果 # 后有空格，则不显示
-    if (textAfterHash.includes(' ') || textAfterHash.includes('\n')) {
-      setShowTagSelector(false)
-      return
-    }
-
-    // 搜索匹配的标签
-    if (textAfterHash.length > 0) {
-      const matchedTags = await searchTags(userId, textAfterHash, topicId) // 只搜索该话题的标签
-      setSuggestedTags(matchedTags)
-      setShowTagSelector(matchedTags.length > 0)
-    } else {
-      setSuggestedTags(allTags.slice(0, 10))
-      setShowTagSelector(allTags.length > 0)
-    }
-  }
-
-  const handleTagSelect = (tag: Tag) => {
-    const lastHashIndex = taskContent.lastIndexOf('#')
-    if (lastHashIndex !== -1) {
-      const beforeHash = taskContent.substring(0, lastHashIndex)
-      const afterHash = taskContent.substring(lastHashIndex + 1)
-      const spaceIndex = afterHash.indexOf(' ')
-      const afterTag = spaceIndex !== -1 ? afterHash.substring(spaceIndex) : ''
-
-      const tagName = getTagFullName(tag)
-      setTaskContent(`${beforeHash}#${tagName} ${afterTag}`)
-    }
-    setShowTagSelector(false)
-  }
-
-  const handleSubmitTask = async () => {
-    if (!taskContent.trim()) {
-      Taro.showToast({title: '请输入任务内容', icon: 'none'})
-      return
-    }
-
-    if (topic?.is_archived) {
-      Taro.showToast({title: '归档的话题不能创建新任务', icon: 'none'})
-      return
-    }
-
-    setSubmitting(true)
-
-    try {
-      const userId = await getCurrentUserId()
-      if (!userId) return
-
-      // 创建任务
-      const newTask = await createTask({
-        topic_id: topicId,
-        user_id: userId,
-        content: taskContent,
-        is_completed: false,
-        is_pinned: false,
-        is_favorite: false
-      })
-
-      if (!newTask) {
-        throw new Error('创建任务失败')
-      }
-
-      // 解析并创建标签
-      const tagStrings = parseTagsFromContent(taskContent)
-      if (tagStrings.length > 0) {
-        const tagIds: string[] = []
-
-        for (const tagStr of tagStrings) {
-          const {parent, child} = parseTagHierarchy(tagStr)
-
-          let parentTagId: string | null = null
-          if (parent) {
-            const parentTag = await findOrCreateTag(userId, parent, null, topicId) // 传递 topicId
-            parentTagId = parentTag.id
-          }
-
-          const childTag = await findOrCreateTag(userId, child, parentTagId, topicId) // 传递 topicId
-          tagIds.push(childTag.id)
-        }
-
-        await addTaskTags(newTask.id, tagIds)
-      }
-
-      Taro.showToast({title: '创建成功', icon: 'success'})
-      setTaskContent('')
-      loadData()
-    } catch (error: any) {
-      console.error('创建任务失败:', error)
-      Taro.showToast({title: error.message || '创建失败', icon: 'none'})
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleAddImage = async () => {
-    const result = await chooseAndUploadImage()
-    if (result.success && result.url) {
-      const imageTag = `[图片:${result.url}]`
-      setTaskContent(taskContent + imageTag)
-    }
-  }
 
   const handleCreateTag = () => {
     setEditingTag(null)
@@ -396,53 +250,8 @@ export default function Tasks() {
         </View>
       </ScrollView>
 
-      {/* 输入区域 */}
-      {!topic?.is_archived && (
-        <View className="bg-card border-t border-border p-4 relative">
-          {/* 标签选择器 */}
-          <TagSelector tags={suggestedTags} onSelect={handleTagSelect} visible={showTagSelector} />
-
-          <View className="flex items-end gap-2">
-            <View className="flex-1 bg-input rounded-lg border border-border px-3 py-2">
-              <Textarea
-                className="w-full text-foreground"
-                style={{padding: 0, border: 'none', background: 'transparent', minHeight: '60px'}}
-                placeholder="输入任务内容，使用 #标签 添加标签..."
-                value={taskContent}
-                onInput={(e) => handleInputChange(e.detail.value)}
-                onFocus={() => {
-                  // 检查是否有未完成的标签输入
-                  if (taskContent.includes('#')) {
-                    handleInputChange(taskContent)
-                  }
-                }}
-                onBlur={() => {
-                  // 延迟隐藏，以便点击标签选择器
-                  setTimeout(() => setShowTagSelector(false), 200)
-                }}
-                maxlength={500}
-                autoHeight
-                disabled={submitting}
-                cursorSpacing={100}
-              />
-            </View>
-
-            <View className="flex flex-col gap-2">
-              <View
-                className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center"
-                onClick={handleAddImage}>
-                <View className="i-mdi-image text-xl text-secondary-foreground" />
-              </View>
-
-              <View
-                className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"
-                onClick={submitting ? undefined : handleSubmitTask}>
-                <View className="i-mdi-send text-xl text-white" />
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
+      {/* 全局输入框 */}
+      {!topic?.is_archived && <GlobalInput topicId={topicId} onTaskCreated={loadData} />}
 
       {/* 标签管理侧边栏 */}
       <TagDrawer

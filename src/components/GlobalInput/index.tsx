@@ -35,14 +35,21 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
       const topicMatch = taskContent.match(/@([^\s#]+)/)
       if (topicMatch) {
         const topicName = topicMatch[1]
+        console.log('解析到话题名称:', topicName)
         taskContent = taskContent.replace(topicMatch[0], '').trim()
 
         // 查找话题（搜索所有话题，不限制搜索词）
         const topics = await getTopics(userId, '', false)
+        console.log(
+          '查找到的话题列表:',
+          topics.map((t) => t.name)
+        )
         const foundTopic = topics.find((t) => t.name === topicName)
         if (foundTopic) {
           targetTopicId = foundTopic.id
+          console.log('找到话题:', foundTopic.name, foundTopic.id)
         } else {
+          console.error('话题不存在:', topicName)
           Taro.showToast({title: `话题"${topicName}"不存在`, icon: 'none', duration: 2000})
           return
         }
