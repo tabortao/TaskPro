@@ -256,7 +256,7 @@ export default function GlobalInput({
         : '输入 @话题名称 #标签 内容（不输入@则自动创建到第一个话题）'
 
   return (
-    <View className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-3 z-30">
+    <View className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-30">
       {/* 话题选择器 */}
       <TopicSelector topics={suggestedTopics} visible={showTopicSelector} onSelect={handleSelectTopic} />
 
@@ -265,8 +265,8 @@ export default function GlobalInput({
 
       <View className="flex items-end gap-2">
         <Textarea
-          className="flex-1 text-foreground text-sm bg-transparent px-3 py-2 rounded-lg border border-border"
-          style={{minHeight: '44px', maxHeight: '120px'}}
+          className="flex-1 text-foreground text-base bg-transparent px-4 py-3 rounded-lg border border-border"
+          style={{minHeight: '56px', maxHeight: '140px'}}
           placeholder={placeholder}
           value={content}
           onInput={(e) => handleInputChange(e.detail.value)}
@@ -282,12 +282,12 @@ export default function GlobalInput({
           maxlength={500}
         />
         <View
-          className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          className={`w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 ${
             content.trim() && !submitting ? 'bg-primary' : 'bg-muted'
           }`}
           onClick={handleSubmit}>
           <View
-            className={`i-mdi-send text-xl ${content.trim() && !submitting ? 'text-primary-foreground' : 'text-muted-foreground'}`}
+            className={`i-mdi-send text-2xl ${content.trim() && !submitting ? 'text-primary-foreground' : 'text-muted-foreground'}`}
           />
         </View>
       </View>

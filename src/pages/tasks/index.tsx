@@ -214,8 +214,9 @@ export default function Tasks() {
             </Text>
           </View>
         </View>
-        <View className="px-4 py-3" onClick={() => setShowTagDrawer(true)}>
+        <View className="px-4 py-3 flex items-center gap-1" onClick={() => setShowTagDrawer(true)}>
           <Text className="text-2xl">🏷️</Text>
+          <Text className="text-sm text-foreground">标签</Text>
         </View>
       </View>
 

@@ -123,7 +123,7 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
         {/* 内容 */}
         <View className="flex-1 min-w-0">
           <Text
-            className={`text-base break-keep ${
+            className={`text-base break-words ${
               task.is_completed ? 'line-through text-muted-foreground' : 'text-foreground'
             }`}>
             {displayContent}
