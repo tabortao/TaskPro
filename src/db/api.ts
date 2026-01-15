@@ -182,6 +182,35 @@ export async function searchTags(userId: string, keyword: string) {
   return (data || []) as Tag[]
 }
 
+// 常用 Emoji 列表（用于自动分配）
+const COMMON_EMOJIS = [
+  '📌',
+  '⭐',
+  '🔥',
+  '💡',
+  '📝',
+  '🎯',
+  '✅',
+  '⚡',
+  '🚀',
+  '💼',
+  '🏠',
+  '🎨',
+  '📚',
+  '💰',
+  '🎮',
+  '🌟',
+  '💪',
+  '🎉',
+  '📱',
+  '⏰'
+]
+
+// 随机选择一个 emoji
+function getRandomEmoji(): string {
+  return COMMON_EMOJIS[Math.floor(Math.random() * COMMON_EMOJIS.length)]
+}
+
 export async function findOrCreateTag(userId: string, tagName: string, parentId: string | null = null) {
   // 先查找是否存在
   const {data: existing} = await supabase
@@ -192,12 +221,20 @@ export async function findOrCreateTag(userId: string, tagName: string, parentId:
     .is('parent_id', parentId)
     .maybeSingle()
 
-  if (existing) return existing as Tag
+  if (existing) {
+    // 如果标签存在但没有 emoji，自动分配一个
+    if (!existing.emoji) {
+      const emoji = getRandomEmoji()
+      await supabase.from('tags').update({emoji}).eq('id', existing.id)
+      return {...existing, emoji} as Tag
+    }
+    return existing as Tag
+  }
 
-  // 不存在则创建（使用默认颜色）
+  // 不存在则创建（使用默认颜色和随机 emoji）
   const {data, error} = await supabase
     .from('tags')
-    .insert({user_id: userId, name: tagName, parent_id: parentId})
+    .insert({user_id: userId, name: tagName, parent_id: parentId, emoji: getRandomEmoji()})
     .select()
     .maybeSingle()
 

@@ -3,7 +3,6 @@ import Taro from '@tarojs/taro'
 import {useState} from 'react'
 import {deleteTask, updateTask} from '@/db/api'
 import type {TaskWithTags} from '@/db/types'
-import {highlightTags} from '@/utils/tags'
 import {getImageUrl} from '@/utils/upload'
 
 interface TaskItemProps {
@@ -75,10 +74,11 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
   for (const match of matches) {
     images.push(match[1])
   }
-  const contentWithoutImages = task.content.replace(imageRegex, '')
 
-  // 高亮标签
-  const highlightedContent = highlightTags(contentWithoutImages)
+  // 移除图片和标签，只显示纯文本内容
+  let contentWithoutImagesAndTags = task.content.replace(imageRegex, '')
+  // 移除 #标签 和 #标签/子标签 格式
+  contentWithoutImagesAndTags = contentWithoutImagesAndTags.replace(/#[^\s#]+/g, '').trim()
 
   return (
     <View className="bg-card rounded-xl p-4 shadow-md border border-border" style={{backgroundColor}}>
@@ -95,17 +95,12 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
 
         {/* 内容 */}
         <View className="flex-1 min-w-0">
-          <View className="flex flex-wrap items-center">
-            {highlightedContent.map((part, index) => (
-              <Text
-                key={index}
-                className={`text-base break-keep ${
-                  task.is_completed ? 'line-through text-muted-foreground' : 'text-foreground'
-                } ${part.isTag ? 'text-primary font-semibold' : ''}`}>
-                {part.text}
-              </Text>
-            ))}
-          </View>
+          <Text
+            className={`text-base break-keep ${
+              task.is_completed ? 'line-through text-muted-foreground' : 'text-foreground'
+            }`}>
+            {contentWithoutImagesAndTags}
+          </Text>
 
           {/* 标签 */}
           {task.tags && task.tags.length > 0 && (
@@ -117,7 +112,7 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
                   style={{backgroundColor: `${tag.color}30`}}>
                   {tag.emoji && <Text className="text-xs">{tag.emoji}</Text>}
                   <Text className="text-xs font-semibold" style={{color: tag.color}}>
-                    #{tag.name}
+                    {tag.name}
                   </Text>
                 </View>
               ))}

@@ -38,6 +38,7 @@ export default function Tasks() {
   const [allTags, setAllTags] = useState<Tag[]>([])
   const [showTagDrawer, setShowTagDrawer] = useState(false)
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'favorite' | string>('all') // 'all' | 'favorite' | tagId
   const [showTagForm, setShowTagForm] = useState(false)
   const [editingTag, setEditingTag] = useState<Tag | null>(null)
 
@@ -85,7 +86,7 @@ export default function Tasks() {
     })
   })
 
-  // 根据 Tab 和标签筛选任务
+  // 根据 Tab 和筛选条件筛选任务
   const displayTasks = useMemo(() => {
     let filtered = allTasks
 
@@ -96,13 +97,17 @@ export default function Tasks() {
       filtered = filtered.filter((task) => !task.is_completed)
     }
 
-    // 按标签筛选
-    if (selectedTagId) {
-      filtered = filtered.filter((task) => task.tags?.some((tag) => tag.id === selectedTagId))
+    // 按筛选条件筛选
+    if (selectedFilter === 'favorite') {
+      // 收藏筛选
+      filtered = filtered.filter((task) => task.is_favorite)
+    } else if (selectedFilter !== 'all') {
+      // 标签筛选
+      filtered = filtered.filter((task) => task.tags?.some((tag) => tag.id === selectedFilter))
     }
 
     return filtered
-  }, [allTasks, activeTab, selectedTagId])
+  }, [allTasks, activeTab, selectedFilter])
 
   // 监听输入内容变化，处理标签自动补全
   const handleInputChange = async (value: string) => {
@@ -358,7 +363,13 @@ export default function Tasks() {
             <View className="flex flex-col items-center justify-center py-20">
               <View className="i-mdi-clipboard-text-outline text-6xl text-muted-foreground mb-4" />
               <Text className="text-muted-foreground">
-                {selectedTagId ? '该标签下暂无任务' : activeTab === 'completed' ? '暂无已完成任务' : '暂无进行中任务'}
+                {selectedFilter === 'favorite'
+                  ? '暂无收藏任务'
+                  : selectedFilter !== 'all'
+                    ? '该标签下暂无任务'
+                    : activeTab === 'completed'
+                      ? '暂无已完成任务'
+                      : '暂无进行中任务'}
               </Text>
             </View>
           ) : (
@@ -424,9 +435,16 @@ export default function Tasks() {
         visible={showTagDrawer}
         tags={allTags}
         selectedTagId={selectedTagId}
+        selectedFilter={selectedFilter}
         onClose={() => setShowTagDrawer(false)}
         onSelectTag={(tagId) => {
           setSelectedTagId(tagId)
+          setSelectedFilter(tagId || 'all')
+          setShowTagDrawer(false)
+        }}
+        onSelectFavorite={() => {
+          setSelectedTagId(null)
+          setSelectedFilter('favorite')
           setShowTagDrawer(false)
         }}
         onCreateTag={handleCreateTag}

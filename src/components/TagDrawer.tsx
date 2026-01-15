@@ -6,8 +6,10 @@ interface TagDrawerProps {
   visible: boolean
   tags: Tag[]
   selectedTagId: string | null
+  selectedFilter: 'all' | 'favorite' | string // 'all' | 'favorite' | tagId
   onClose: () => void
   onSelectTag: (tagId: string | null) => void
+  onSelectFavorite: () => void
   onCreateTag: () => void
   onEditTag: (tag: Tag) => void
   onDeleteTag: (tagId: string) => void
@@ -31,8 +33,10 @@ export default function TagDrawer({
   visible,
   tags,
   selectedTagId,
+  selectedFilter,
   onClose,
   onSelectTag,
+  onSelectFavorite,
   onCreateTag,
   onEditTag,
   onDeleteTag
@@ -69,13 +73,28 @@ export default function TagDrawer({
           {/* 全部标签选项 */}
           <View
             className={`flex items-center justify-between p-3 rounded-lg mb-2 ${
-              selectedTagId === null ? 'bg-primary' : 'bg-secondary'
+              selectedFilter === 'all' ? 'bg-primary' : 'bg-secondary'
             }`}
             onClick={() => onSelectTag(null)}>
             <View className="flex items-center gap-2">
               <View className="i-mdi-tag-multiple text-xl text-white" />
-              <Text className={`text-base break-keep ${selectedTagId === null ? 'text-white' : 'text-foreground'}`}>
+              <Text className={`text-base break-keep ${selectedFilter === 'all' ? 'text-white' : 'text-foreground'}`}>
                 全部任务
+              </Text>
+            </View>
+          </View>
+
+          {/* 收藏选项 */}
+          <View
+            className={`flex items-center justify-between p-3 rounded-lg mb-2 ${
+              selectedFilter === 'favorite' ? 'bg-primary' : 'bg-secondary'
+            }`}
+            onClick={onSelectFavorite}>
+            <View className="flex items-center gap-2">
+              <View className="i-mdi-star text-xl text-yellow-500" />
+              <Text
+                className={`text-base break-keep ${selectedFilter === 'favorite' ? 'text-white' : 'text-foreground'}`}>
+                收藏
               </Text>
             </View>
           </View>

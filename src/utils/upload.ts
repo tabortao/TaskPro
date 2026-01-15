@@ -1,8 +1,27 @@
+import {PutObjectCommand, S3Client} from '@aws-sdk/client-s3'
 import Taro from '@tarojs/taro'
-import {supabase} from '@/client/supabase'
 
-const BUCKET_NAME = 'app-8y2p9eqmj5dt_taskpro_images'
 const MAX_FILE_SIZE = 1024 * 1024 // 1MB
+
+// S3 配置
+const S3_CONFIG = {
+  endpoint: (import.meta as any).env.TARO_APP_S3_ENDPOINT,
+  accessKeyId: (import.meta as any).env.TARO_APP_S3_ACCESS_KEY_ID,
+  secretAccessKey: (import.meta as any).env.TARO_APP_S3_SECRET_ACCESS_KEY,
+  bucket: (import.meta as any).env.TARO_APP_S3_BUCKET,
+  region: (import.meta as any).env.TARO_APP_S3_REGION || 'auto',
+  publicUrl: (import.meta as any).env.TARO_APP_S3_PUBLIC_URL
+}
+
+// 创建 S3 客户端
+const s3Client = new S3Client({
+  endpoint: S3_CONFIG.endpoint,
+  region: S3_CONFIG.region,
+  credentials: {
+    accessKeyId: S3_CONFIG.accessKeyId,
+    secretAccessKey: S3_CONFIG.secretAccessKey
+  }
+})
 
 export interface UploadFileInput {
   path: string
@@ -39,7 +58,21 @@ async function compressImage(filePath: string, quality = 0.8): Promise<string> {
   }
 }
 
-// 上传文件到 Supabase Storage
+// 读取文件内容
+async function readFileContent(filePath: string): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const fs = Taro.getFileSystemManager()
+    fs.readFile({
+      filePath,
+      success: (res) => {
+        resolve(res.data as ArrayBuffer)
+      },
+      fail: reject
+    })
+  })
+}
+
+// 上传文件到 S3
 export async function uploadFile(file: UploadFileInput): Promise<UploadResult> {
   try {
     // 检查文件大小
@@ -82,23 +115,32 @@ export async function uploadFile(file: UploadFileInput): Promise<UploadResult> {
       return {success: false, error: '文件名只能包含英文字母和数字'}
     }
 
-    // 上传到 Supabase
-    const fileContent = file.originalFileObj || ({tempFilePath: filePath} as any)
+    // 读取文件内容
+    let fileContent: ArrayBuffer | File
 
-    const {data, error} = await supabase.storage.from(BUCKET_NAME).upload(fileName, fileContent, {
-      cacheControl: '3600',
-      upsert: false
-    })
-
-    if (error) {
-      console.error('上传失败:', error)
-      return {success: false, error: error.message}
+    if (file.originalFileObj) {
+      // H5 环境，直接使用 File 对象
+      fileContent = file.originalFileObj
+    } else {
+      // 小程序环境，读取文件内容
+      fileContent = await readFileContent(filePath)
     }
 
-    // 获取公开URL
-    const {data: urlData} = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path)
+    // 上传到 S3
+    const command = new PutObjectCommand({
+      Bucket: S3_CONFIG.bucket,
+      Key: fileName,
+      Body: fileContent as any,
+      ContentType: 'image/jpeg',
+      CacheControl: 'public, max-age=31536000'
+    })
 
-    return {success: true, url: urlData.publicUrl}
+    await s3Client.send(command)
+
+    // 构建公开URL
+    const publicUrl = `${S3_CONFIG.publicUrl}/${fileName}`
+
+    return {success: true, url: publicUrl}
   } catch (error: any) {
     console.error('上传文件失败:', error)
     return {success: false, error: error.message || '上传失败'}
@@ -151,8 +193,6 @@ export function getImageUrl(pathOrUrl: string): string {
     return pathOrUrl
   }
 
-  // 否则从 Supabase Storage 获取公开URL
-  const {data} = supabase.storage.from(BUCKET_NAME).getPublicUrl(pathOrUrl)
-
-  return data.publicUrl
+  // 否则构建 S3 公开URL
+  return `${S3_CONFIG.publicUrl}/${pathOrUrl}`
 }
