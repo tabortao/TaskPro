@@ -1,7 +1,8 @@
-import {Image, ScrollView, Text, Textarea, View} from '@tarojs/components'
+import {Image, ScrollView, Text, View} from '@tarojs/components'
 import Taro, {useLoad} from '@tarojs/taro'
 import {useCallback, useEffect, useState} from 'react'
-import {createComment, deleteComment, getCommentsByTaskId, getTaskById, updateTask} from '@/db/api'
+import GlobalInput from '@/components/GlobalInput'
+import {deleteComment, getCommentsByTaskId, getTaskById, updateTask} from '@/db/api'
 import type {CommentWithUser, TaskWithTags} from '@/db/types'
 import {getCurrentUserId} from '@/utils/auth'
 import {getImageUrl} from '@/utils/upload'
@@ -9,9 +10,7 @@ import {getImageUrl} from '@/utils/upload'
 export default function TaskDetail() {
   const [task, setTask] = useState<TaskWithTags | null>(null)
   const [comments, setComments] = useState<CommentWithUser[]>([])
-  const [commentContent, setCommentContent] = useState('')
   const [loading, setLoading] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [taskId, setTaskId] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
 
@@ -57,28 +56,6 @@ export default function TaskDetail() {
     } catch (error) {
       console.error('更新收藏状态失败:', error)
       Taro.showToast({title: '操作失败', icon: 'none'})
-    }
-  }
-
-  const handleSubmitComment = async () => {
-    if (!commentContent.trim() || !userId || !task) return
-
-    setSubmitting(true)
-    try {
-      await createComment({
-        task_id: task.id,
-        user_id: userId,
-        content: commentContent.trim()
-      })
-
-      setCommentContent('')
-      await loadData()
-      Taro.showToast({title: '评论成功', icon: 'success'})
-    } catch (error) {
-      console.error('提交评论失败:', error)
-      Taro.showToast({title: '评论失败', icon: 'none'})
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -285,28 +262,8 @@ export default function TaskDetail() {
         </View>
       </ScrollView>
 
-      {/* 评论输入框 */}
-      <View className="bg-card border-t border-border p-4">
-        <View className="flex items-end gap-2">
-          <View className="flex-1 bg-input rounded-lg border border-border px-3 py-2">
-            <Textarea
-              className="w-full text-foreground"
-              style={{padding: 0, border: 'none', background: 'transparent', minHeight: '40px'}}
-              placeholder="写下你的评论..."
-              value={commentContent}
-              onInput={(e) => setCommentContent(e.detail.value)}
-              maxlength={500}
-              autoHeight
-              disabled={submitting}
-            />
-          </View>
-          <View
-            className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"
-            onClick={submitting ? undefined : handleSubmitComment}>
-            <View className="i-mdi-send text-xl text-white" />
-          </View>
-        </View>
-      </View>
+      {/* 全局输入框（评论模式） */}
+      <GlobalInput mode="comment" taskId={taskId} onCommentCreated={loadData} />
     </View>
   )
 }

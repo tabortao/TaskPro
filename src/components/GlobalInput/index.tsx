@@ -2,20 +2,62 @@
 import {Textarea, View} from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import {useState} from 'react'
-import {createTask, findOrCreateTag, getTopics} from '@/db/api'
+import {createComment, createTask, findOrCreateTag, getTopics} from '@/db/api'
 import {getCurrentUserId} from '@/utils/auth'
 import {parseTagsFromContent} from '@/utils/tags'
 
 interface GlobalInputProps {
+  mode?: 'task' | 'comment' // 模式：任务创建或评论创建
   topicId?: string // 如果在话题页面，传入话题 ID
+  taskId?: string // 如果是评论模式，传入任务 ID
   onTaskCreated?: () => void // 任务创建成功回调
+  onCommentCreated?: () => void // 评论创建成功回调
 }
 
-export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) {
+export default function GlobalInput({
+  mode = 'task',
+  topicId,
+  taskId,
+  onTaskCreated,
+  onCommentCreated
+}: GlobalInputProps) {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = async () => {
+  const handleSubmitComment = async () => {
+    if (!content.trim() || !taskId) return
+
+    try {
+      setSubmitting(true)
+      const userId = await getCurrentUserId()
+      if (!userId) {
+        Taro.showToast({title: '请先登录', icon: 'none'})
+        return
+      }
+
+      // 处理 Markdown 图片语法
+      let commentContent = content.trim()
+      commentContent = commentContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '[图片:$2]')
+      commentContent = commentContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
+
+      await createComment({
+        task_id: taskId,
+        user_id: userId,
+        content: commentContent
+      })
+
+      setContent('')
+      Taro.showToast({title: '评论成功', icon: 'success'})
+      onCommentCreated?.()
+    } catch (error: any) {
+      console.error('创建评论失败:', error)
+      Taro.showToast({title: error.message || '评论失败', icon: 'none', duration: 2000})
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleSubmitTask = async () => {
     if (!content.trim() || submitting) return
 
     try {
@@ -55,10 +97,15 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
         }
       }
 
-      // 如果没有指定话题，提示用户
+      // 如果没有指定话题，自动使用第一个话题
       if (!targetTopicId) {
-        Taro.showToast({title: '请指定话题（@话题名称）', icon: 'none', duration: 2000})
-        return
+        const topics = await getTopics(userId, '', false)
+        if (topics.length === 0) {
+          Taro.showToast({title: '请先创建话题', icon: 'none', duration: 2000})
+          return
+        }
+        targetTopicId = topics[0].id
+        console.log('自动使用第一个话题:', topics[0].name, topics[0].id)
       }
 
       // 解析 #标签
@@ -114,6 +161,14 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
     }
   }
 
+  const handleSubmit = () => {
+    if (mode === 'comment') {
+      handleSubmitComment()
+    } else {
+      handleSubmitTask()
+    }
+  }
+
   const _handleKeyDown = (e: any) => {
     // 检测 Enter 键（小程序环境可能不支持，但保留逻辑）
     if (e.detail?.keyCode === 13 && !e.detail?.shiftKey) {
@@ -122,13 +177,20 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
     }
   }
 
+  const placeholder =
+    mode === 'comment'
+      ? '写下你的评论...'
+      : topicId
+        ? '输入 #标签 内容'
+        : '输入 @话题名称 #标签 内容（不输入@则自动创建到第一个话题）'
+
   return (
     <View className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-3 z-30">
       <View className="flex items-end gap-2">
         <Textarea
           className="flex-1 text-foreground text-sm bg-transparent px-3 py-2 rounded-lg border border-border"
           style={{minHeight: '44px', maxHeight: '120px'}}
-          placeholder={topicId ? '输入 #标签 内容' : '输入 @话题名称 #标签 内容'}
+          placeholder={placeholder}
           value={content}
           onInput={(e) => setContent(e.detail.value)}
           onConfirm={handleSubmit}
