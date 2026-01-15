@@ -3,17 +3,17 @@ import Taro, {useLoad} from '@tarojs/taro'
 import {useCallback, useEffect, useState} from 'react'
 import {createComment, deleteComment, getCommentsByTaskId, getTaskById, updateTask} from '@/db/api'
 import type {CommentWithUser, TaskWithTags} from '@/db/types'
-import {useAuthStore} from '@/store/auth'
+import {getCurrentUserId} from '@/utils/auth'
 import {getImageUrl} from '@/utils/upload'
 
 export default function TaskDetail() {
-  const {user} = useAuthStore()
   const [task, setTask] = useState<TaskWithTags | null>(null)
   const [comments, setComments] = useState<CommentWithUser[]>([])
   const [commentContent, setCommentContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [taskId, setTaskId] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
 
   useLoad((options) => {
     if (options.taskId) {
@@ -22,10 +22,14 @@ export default function TaskDetail() {
   })
 
   const loadData = useCallback(async () => {
-    if (!taskId || !user) return
+    if (!taskId) return
 
     setLoading(true)
     try {
+      // 获取当前用户 ID
+      const currentUserId = await getCurrentUserId()
+      setUserId(currentUserId)
+
       const taskData = await getTaskById(taskId)
       setTask(taskData)
 
@@ -37,14 +41,14 @@ export default function TaskDetail() {
     } finally {
       setLoading(false)
     }
-  }, [taskId, user])
+  }, [taskId])
 
   useEffect(() => {
     loadData()
   }, [loadData])
 
   const handleToggleFavorite = async () => {
-    if (!task || !user) return
+    if (!task || !userId) return
 
     try {
       await updateTask(task.id, {is_favorite: !task.is_favorite})
@@ -57,13 +61,13 @@ export default function TaskDetail() {
   }
 
   const handleSubmitComment = async () => {
-    if (!commentContent.trim() || !user || !task) return
+    if (!commentContent.trim() || !userId || !task) return
 
     setSubmitting(true)
     try {
       await createComment({
         task_id: task.id,
-        user_id: user.id,
+        user_id: userId,
         content: commentContent.trim()
       })
 
@@ -262,7 +266,7 @@ export default function TaskDetail() {
                           {comment.user?.nickname || '匿名用户'}
                         </Text>
                       </View>
-                      {user && comment.user_id === user.id && (
+                      {userId && comment.user_id === userId && (
                         <View
                           className="i-mdi-delete text-lg text-muted-foreground"
                           onClick={() => handleDeleteComment(comment.id)}

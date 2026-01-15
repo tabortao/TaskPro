@@ -119,15 +119,6 @@ export default function ProfileEdit() {
         avatar_url: avatarUrl
       })
 
-      // 更新 store
-      if (user) {
-        setUser({
-          ...user,
-          nickname: nickname.trim(),
-          avatar_url: avatarUrl
-        })
-      }
-
       Taro.showToast({title: '保存成功', icon: 'success'})
       setTimeout(() => {
         Taro.navigateBack()
