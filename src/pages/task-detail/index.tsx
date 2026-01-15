@@ -124,7 +124,7 @@ export default function TaskDetail() {
         return (
           <Text
             key={index}
-            className="text-primary underline break-keep"
+            className="text-primary underline break-all"
             onClick={() => {
               Taro.setClipboardData({
                 data: part,
@@ -142,7 +142,7 @@ export default function TaskDetail() {
         )
       }
       return (
-        <Text key={index} className="break-keep">
+        <Text key={index} className="break-all">
           {part}
         </Text>
       )

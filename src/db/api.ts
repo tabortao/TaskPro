@@ -155,14 +155,49 @@ export async function getTaskById(taskId: string) {
   return task
 }
 
+// 全局搜索任务（搜索所有话题的任务）
+export async function searchAllTasks(userId: string, keyword: string) {
+  const {data, error} = await supabase
+    .from('tasks')
+    .select(
+      `
+      *,
+      topics!inner(id, name, icon_url),
+      tags:task_tags(tag:tags(*))
+    `
+    )
+    .eq('user_id', userId)
+    .ilike('content', `%${keyword}%`)
+    .order('created_at', {ascending: false})
+    .limit(50)
+
+  if (error) throw error
+
+  // 转换数据格式
+  const tasks = (data || []).map((task: any) => ({
+    ...task,
+    topic: task.topics,
+    tags: task.tags?.map((t: any) => t.tag).filter(Boolean) || []
+  }))
+
+  return tasks as (TaskWithTags & {topic: Topic})[]
+}
+
 // ==================== Tag API ====================
 
-export async function getTags(userId: string) {
-  const {data, error} = await supabase
-    .from('tags')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', {ascending: true})
+export async function getTags(userId: string, topicId?: string | null) {
+  let query = supabase.from('tags').select('*').eq('user_id', userId).order('created_at', {ascending: true})
+
+  // 如果指定了 topicId，只查询该话题的标签
+  if (topicId !== undefined) {
+    if (topicId === null) {
+      query = query.is('topic_id', null)
+    } else {
+      query = query.eq('topic_id', topicId)
+    }
+  }
+
+  const {data, error} = await query
 
   if (error) throw error
   return (data || []) as Tag[]
@@ -195,14 +230,25 @@ export async function getRecentTags(userId: string, limit = 10) {
   return uniqueTags
 }
 
-export async function searchTags(userId: string, keyword: string) {
-  const {data, error} = await supabase
+export async function searchTags(userId: string, keyword: string, topicId?: string | null) {
+  let query = supabase
     .from('tags')
     .select('*')
     .eq('user_id', userId)
     .ilike('name', `%${keyword}%`)
     .order('created_at', {ascending: false})
     .limit(10)
+
+  // 如果指定了 topicId，只搜索该话题的标签
+  if (topicId !== undefined) {
+    if (topicId === null) {
+      query = query.is('topic_id', null)
+    } else {
+      query = query.eq('topic_id', topicId)
+    }
+  }
+
+  const {data, error} = await query
 
   if (error) throw error
   return (data || []) as Tag[]
@@ -237,15 +283,25 @@ function getRandomEmoji(): string {
   return COMMON_EMOJIS[Math.floor(Math.random() * COMMON_EMOJIS.length)]
 }
 
-export async function findOrCreateTag(userId: string, tagName: string, parentId: string | null = null) {
+export async function findOrCreateTag(
+  userId: string,
+  tagName: string,
+  parentId: string | null = null,
+  topicId?: string | null
+) {
   // 先查找是否存在
-  const {data: existing} = await supabase
-    .from('tags')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('name', tagName)
-    .is('parent_id', parentId)
-    .maybeSingle()
+  let query = supabase.from('tags').select('*').eq('user_id', userId).eq('name', tagName).is('parent_id', parentId)
+
+  // 添加 topic_id 查询条件
+  if (topicId !== undefined) {
+    if (topicId === null) {
+      query = query.is('topic_id', null)
+    } else {
+      query = query.eq('topic_id', topicId)
+    }
+  }
+
+  const {data: existing} = await query.maybeSingle()
 
   if (existing) {
     // 如果标签存在但没有 emoji，自动分配一个
@@ -260,7 +316,13 @@ export async function findOrCreateTag(userId: string, tagName: string, parentId:
   // 不存在则创建（使用默认颜色和随机 emoji）
   const {data, error} = await supabase
     .from('tags')
-    .insert({user_id: userId, name: tagName, parent_id: parentId, emoji: getRandomEmoji()})
+    .insert({
+      user_id: userId,
+      topic_id: topicId !== undefined ? topicId : null,
+      name: tagName,
+      parent_id: parentId,
+      emoji: getRandomEmoji()
+    })
     .select()
     .maybeSingle()
 

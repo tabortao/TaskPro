@@ -63,7 +63,7 @@ export default function Tasks() {
       const [topicData, tasksData, tagsData] = await Promise.all([
         getTopic(topicId),
         getTasks(topicId),
-        getTags(userId)
+        getTags(userId, topicId) // 只加载该话题的标签
       ])
 
       setTopic(topicData)
@@ -145,7 +145,7 @@ export default function Tasks() {
 
     // 搜索匹配的标签
     if (textAfterHash.length > 0) {
-      const matchedTags = await searchTags(userId, textAfterHash)
+      const matchedTags = await searchTags(userId, textAfterHash, topicId) // 只搜索该话题的标签
       setSuggestedTags(matchedTags)
       setShowTagSelector(matchedTags.length > 0)
     } else {
@@ -209,11 +209,11 @@ export default function Tasks() {
 
           let parentTagId: string | null = null
           if (parent) {
-            const parentTag = await findOrCreateTag(userId, parent, null)
+            const parentTag = await findOrCreateTag(userId, parent, null, topicId) // 传递 topicId
             parentTagId = parentTag.id
           }
 
-          const childTag = await findOrCreateTag(userId, child, parentTagId)
+          const childTag = await findOrCreateTag(userId, child, parentTagId, topicId) // 传递 topicId
           tagIds.push(childTag.id)
         }
 
@@ -262,6 +262,7 @@ export default function Tasks() {
         // 新建标签
         await createTag({
           user_id: userId,
+          topic_id: topicId, // 添加 topic_id
           name: data.name,
           emoji: data.emoji || null,
           color: data.color,
@@ -298,15 +299,31 @@ export default function Tasks() {
       {/* 话题信息 */}
       {topic && (
         <View className="bg-gradient-card p-4 border-b border-border">
-          <View className="flex items-center gap-3">
-            {topic.icon_url ? (
-              <Image src={getImageUrl(topic.icon_url)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
-            ) : (
-              <View className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <View className="i-mdi-folder text-2xl text-white" />
-              </View>
-            )}
-            <View className="flex-1">
+          <View className="flex items-start gap-3">
+            {/* 话题图标和备注 */}
+            <View className="flex flex-col items-center gap-2">
+              {topic.icon_url ? (
+                topic.icon_url.startsWith('emoji:') ? (
+                  <View className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-primary">
+                    <Text className="text-3xl">{topic.icon_url.replace('emoji:', '')}</Text>
+                  </View>
+                ) : (
+                  <Image src={getImageUrl(topic.icon_url)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
+                )
+              ) : (
+                <View className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
+                  <View className="i-mdi-folder text-2xl text-white" />
+                </View>
+              )}
+              {topic.description && (
+                <Text className="text-xs text-muted-foreground text-center break-keep max-w-16">
+                  {topic.description}
+                </Text>
+              )}
+            </View>
+
+            {/* 话题名称和状态 */}
+            <View className="flex-1 min-w-0">
               <Text className="text-lg font-bold text-foreground break-keep">{topic.name}</Text>
               {topic.is_archived && (
                 <View className="flex items-center gap-1 mt-1">
@@ -316,9 +333,6 @@ export default function Tasks() {
               )}
             </View>
           </View>
-          {topic.description && (
-            <Text className="text-sm text-muted-foreground mt-2 break-keep">{topic.description}</Text>
-          )}
         </View>
       )}
 

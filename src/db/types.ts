@@ -39,6 +39,7 @@ export interface Task {
 export interface Tag {
   id: string
   user_id: string
+  topic_id: string | null // 所属话题 ID，null 表示全局标签
   name: string
   parent_id: string | null
   emoji: string | null
