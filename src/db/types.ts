@@ -81,7 +81,7 @@ export interface CommentWithUser extends Comment {
   user?: {
     id: string
     nickname?: string
-    avatar?: string
+    avatar_url?: string
   }
 }
 

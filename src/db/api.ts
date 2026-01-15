@@ -355,7 +355,7 @@ export async function deleteTag(tagId: string) {
 export async function getCommentsByTaskId(taskId: string) {
   const {data, error} = await supabase
     .from('comments')
-    .select('*, user:user_id(id, nickname, avatar)')
+    .select('*, user:profiles!user_id(id, nickname, avatar_url)')
     .eq('task_id', taskId)
     .order('created_at', {ascending: true})
 
