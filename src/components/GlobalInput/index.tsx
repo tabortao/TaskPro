@@ -2,7 +2,7 @@
 import {Textarea, View} from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import {useState} from 'react'
-import {createTask, findOrCreateTag, getTopic, getTopics} from '@/db/api'
+import {createTask, findOrCreateTag, getTopics} from '@/db/api'
 import {getCurrentUserId} from '@/utils/auth'
 import {parseTagsFromContent} from '@/utils/tags'
 
@@ -74,6 +74,8 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
       // 处理 Markdown 超链接语法：[text](url) 转换为 text (url)
       taskContent = taskContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
 
+      console.log('开始创建任务，话题ID:', targetTopicId, '内容:', taskContent, '标签:', tagMatches)
+
       // 创建任务
       const task = await createTask({
         topic_id: targetTopicId,
@@ -84,16 +86,19 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
         is_favorite: false
       })
 
+      console.log('任务创建成功:', task)
+
       // 添加标签
       if (task && tagMatches.length > 0) {
-        const topic = await getTopic(targetTopicId)
-        if (topic) {
-          for (const tagStr of tagMatches) {
-            const tag = await findOrCreateTag(userId, targetTopicId, tagStr)
-            if (tag) {
-              const {addTaskTags} = await import('@/db/api')
-              await addTaskTags(task.id, [tag.id])
-            }
+        console.log('开始添加标签:', tagMatches)
+        for (const tagStr of tagMatches) {
+          // findOrCreateTag 参数：userId, tagName, parentId, topicId
+          const tag = await findOrCreateTag(userId, tagStr, null, targetTopicId)
+          console.log('标签创建/查找成功:', tag)
+          if (tag) {
+            const {addTaskTags} = await import('@/db/api')
+            await addTaskTags(task.id, [tag.id])
+            console.log('标签已添加到任务')
           }
         }
       }
@@ -101,9 +106,9 @@ export default function GlobalInput({topicId, onTaskCreated}: GlobalInputProps) 
       setContent('')
       Taro.showToast({title: '创建成功', icon: 'success'})
       onTaskCreated?.()
-    } catch (error) {
+    } catch (error: any) {
       console.error('创建任务失败:', error)
-      Taro.showToast({title: '创建失败', icon: 'none'})
+      Taro.showToast({title: error.message || '创建失败', icon: 'none', duration: 2000})
     } finally {
       setSubmitting(false)
     }

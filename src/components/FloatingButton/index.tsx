@@ -77,10 +77,24 @@ export default function FloatingButton({
 
   const handleTouchEnd = () => {
     setIsDragging(false)
-    savePosition(position)
+
+    // 只在拖动时保存位置
+    if (hasMoved.current) {
+      savePosition(position)
+    }
 
     // 如果没有移动，认为是点击
     if (!hasMoved.current) {
+      console.log('悬浮按钮被点击')
+      onClick?.()
+    }
+  }
+
+  // H5 环境的点击事件备用
+  const handleClick = () => {
+    // 如果刚刚拖动过，不触发点击
+    if (!hasMoved.current) {
+      console.log('悬浮按钮被点击（onClick）')
       onClick?.()
     }
   }
@@ -92,11 +106,12 @@ export default function FloatingButton({
         left: `${position.x}px`,
         top: `${position.y}px`,
         transition: isDragging ? 'none' : 'all 0.3s ease',
-        cursor: 'move'
+        cursor: 'pointer'
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}>
+      onTouchEnd={handleTouchEnd}
+      onClick={handleClick}>
       <View className={`${icon} text-3xl text-primary-foreground`} />
     </View>
   )

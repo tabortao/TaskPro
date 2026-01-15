@@ -157,9 +157,9 @@ export default function Tasks() {
             {/* 话题图标和备注 */}
             <View className="flex flex-col items-center gap-2">
               {topic.icon_url ? (
-                topic.icon_url.startsWith('emoji:') ? (
+                !topic.icon_url.startsWith('http') ? (
                   <View className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-primary">
-                    <Text className="text-3xl">{topic.icon_url.replace('emoji:', '')}</Text>
+                    <Text className="text-3xl">{topic.icon_url}</Text>
                   </View>
                 ) : (
                   <Image src={getImageUrl(topic.icon_url)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
