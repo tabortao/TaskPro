@@ -3,7 +3,6 @@ import Taro, {useDidShow} from '@tarojs/taro'
 import {useState} from 'react'
 import {getProfile, updateProfile} from '@/db/api'
 import type {Profile} from '@/db/types'
-import {useAuthStore} from '@/store/auth'
 import {getCurrentUserId} from '@/utils/auth'
 import {getImageUrl, uploadImage} from '@/utils/upload'
 
@@ -32,7 +31,6 @@ const AVATAR_EMOJIS = [
 ]
 
 export default function ProfileEdit() {
-  const {user, setUser} = useAuthStore()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [nickname, setNickname] = useState('')
   const [avatarType, setAvatarType] = useState<'emoji' | 'image'>('emoji')
