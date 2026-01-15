@@ -1,11 +1,12 @@
-import {Button, Input, ScrollView, Text, View} from '@tarojs/components'
+import {Input, ScrollView, Text, View} from '@tarojs/components'
 import Taro, {useDidShow} from '@tarojs/taro'
 import {useCallback, useState} from 'react'
+import FloatingButton from '@/components/FloatingButton'
+import GlobalInput from '@/components/GlobalInput'
 import TopicCard from '@/components/TopicCard'
 import {getTopics, searchAllTasks} from '@/db/api'
 import type {TaskWithTags, Topic} from '@/db/types'
 import {authGuard, getCurrentUserId} from '@/utils/auth'
-import './index.scss'
 
 export default function Topics() {
   const [topics, setTopics] = useState<Topic[]>([])
@@ -59,6 +60,10 @@ export default function Topics() {
     setSearchResults([])
   }
 
+  const handleGoToProfile = () => {
+    Taro.navigateTo({url: '/pages/profile/index'})
+  }
+
   useDidShow(() => {
     const currentPath = Taro.getCurrentInstance().router?.path || ''
     authGuard(currentPath).then((isAuth) => {
@@ -76,8 +81,12 @@ export default function Topics() {
     Taro.navigateTo({url: `/pages/tasks/index?topicId=${topicId}`})
   }
 
+  const handleTaskCreated = () => {
+    loadTopics()
+  }
+
   return (
-    <View className="min-h-screen bg-gradient-subtle">
+    <View className="min-h-screen bg-gradient-subtle pb-32">
       {/* 搜索栏 */}
       <View className="bg-card px-4 py-3 border-b border-border">
         <View className="flex items-center gap-2">
@@ -93,18 +102,17 @@ export default function Topics() {
             />
             {searchQuery && <View className="i-mdi-close text-xl text-muted-foreground" onClick={handleClearSearch} />}
           </View>
-          <Button
-            className="bg-primary text-white px-4 py-2 rounded-lg break-keep text-sm"
-            size="mini"
-            onClick={handleSearch}>
-            搜索
-          </Button>
+          <View
+            className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"
+            onClick={handleGoToProfile}>
+            <View className="i-mdi-account text-2xl text-primary-foreground" />
+          </View>
         </View>
       </View>
 
       {/* 内容区域 */}
-      <ScrollView scrollY className="flex-1" style={{height: 'calc(100vh - 120px)'}}>
-        <View className="p-4">
+      <ScrollView scrollY className="flex-1" style={{height: 'calc(100vh - 180px)'}}>
+        <View className="p-4 pb-8">
           {loading ? (
             <View className="flex flex-col items-center justify-center py-20">
               <View className="i-mdi-loading animate-spin text-4xl text-primary mb-2" />
@@ -153,12 +161,9 @@ export default function Topics() {
             <View className="flex flex-col items-center justify-center py-20">
               <View className="i-mdi-folder-open-outline text-6xl text-muted-foreground mb-4" />
               <Text className="text-muted-foreground mb-6">还没有话题，快来创建一个吧</Text>
-              <Button
-                className="bg-primary text-white px-6 py-3 rounded-lg break-keep text-base"
-                size="default"
-                onClick={handleAddTopic}>
-                创建话题
-              </Button>
+              <View className="bg-primary text-white px-6 py-3 rounded-lg" onClick={handleAddTopic}>
+                <Text className="text-primary-foreground text-base break-keep">创建话题</Text>
+              </View>
             </View>
           ) : (
             <View className="space-y-3">
@@ -175,14 +180,11 @@ export default function Topics() {
         </View>
       </ScrollView>
 
-      {/* 浮动添加按钮 */}
-      {topics.length > 0 && (
-        <View
-          className="fixed bottom-20 right-6 w-14 h-14 bg-gradient-primary rounded-full flex items-center justify-center shadow-lg"
-          onClick={handleAddTopic}>
-          <View className="i-mdi-plus text-3xl text-white" />
-        </View>
-      )}
+      {/* 悬浮按钮 */}
+      <FloatingButton icon="i-mdi-plus" onClick={handleAddTopic} />
+
+      {/* 全局输入框 */}
+      <GlobalInput onTaskCreated={handleTaskCreated} />
     </View>
   )
 }
