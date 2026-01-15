@@ -18,7 +18,7 @@ export default function Topics() {
       const userId = await getCurrentUserId()
       if (!userId) return
 
-      const data = await getTopics(userId, searchQuery)
+      const data = await getTopics(userId, searchQuery, false)
       setTopics(data)
     } catch (error) {
       console.error('加载话题失败:', error)

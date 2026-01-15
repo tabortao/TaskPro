@@ -33,6 +33,13 @@ export function getTagFullPath(tag: Tag, allTags: Tag[]): string {
   return `${parent.name}/${tag.name}`
 }
 
+// 获取标签的完整名称（不需要 allTags 参数，仅返回标签名）
+export function getTagFullName(tag: Tag): string {
+  // 这里简化处理，只返回标签名
+  // 如果需要显示父标签，需要传入 parent 信息
+  return tag.name
+}
+
 // 高亮任务内容中的标签
 export function highlightTags(content: string): {text: string; isTag: boolean}[] {
   const parts: {text: string; isTag: boolean}[] = []

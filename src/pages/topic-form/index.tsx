@@ -82,7 +82,8 @@ export default function TopicForm() {
           user_id: userId,
           name,
           description: description || null,
-          icon_url: iconUrl || null
+          icon_url: iconUrl || null,
+          is_archived: false
         })
         Taro.showToast({title: '创建成功', icon: 'success'})
       }
@@ -114,6 +115,28 @@ export default function TopicForm() {
           } catch (error: any) {
             console.error('删除失败:', error)
             Taro.showToast({title: error.message || '删除失败', icon: 'none'})
+          }
+        }
+      }
+    })
+  }
+
+  const handleArchive = () => {
+    Taro.showModal({
+      title: '确认归档',
+      content: '归档后的话题将不在话题列表显示，且不能创建新任务，确定要归档吗？',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            await updateTopic(topicId, {is_archived: true})
+            Taro.showToast({title: '归档成功', icon: 'success'})
+
+            setTimeout(() => {
+              Taro.navigateBack()
+            }, 500)
+          } catch (error: any) {
+            console.error('归档失败:', error)
+            Taro.showToast({title: error.message || '归档失败', icon: 'none'})
           }
         }
       }
@@ -195,12 +218,21 @@ export default function TopicForm() {
             </Button>
 
             {isEdit && (
-              <Button
-                className="w-full bg-destructive text-white py-4 rounded-xl break-keep text-base"
-                size="default"
-                onClick={handleDelete}>
-                删除话题
-              </Button>
+              <>
+                <Button
+                  className="w-full bg-secondary text-secondary-foreground py-4 rounded-xl break-keep text-base"
+                  size="default"
+                  onClick={handleArchive}>
+                  归档话题
+                </Button>
+
+                <Button
+                  className="w-full bg-destructive text-white py-4 rounded-xl break-keep text-base"
+                  size="default"
+                  onClick={handleDelete}>
+                  删除话题
+                </Button>
+              </>
             )}
           </View>
         </View>

@@ -124,6 +124,27 @@ export default function ProfilePage() {
               </View>
             </View>
 
+            {/* 已归档话题 */}
+            <View className="bg-card rounded-xl p-4 mb-4 shadow-lg">
+              <View className="flex items-center justify-between">
+                <View className="flex items-center gap-3">
+                  <View className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
+                    <View className="i-mdi-archive text-xl text-accent-foreground" />
+                  </View>
+                  <View>
+                    <Text className="text-base font-semibold text-foreground">已归档话题</Text>
+                    <Text className="text-xs text-muted-foreground mt-1">查看归档的话题</Text>
+                  </View>
+                </View>
+                <Button
+                  className="bg-primary text-white px-4 py-2 rounded-lg break-keep text-sm"
+                  size="mini"
+                  onClick={() => Taro.navigateTo({url: '/pages/archived-topics/index'})}>
+                  查看
+                </Button>
+              </View>
+            </View>
+
             {/* 关于应用 */}
             <View className="bg-card rounded-xl p-4 mb-4 shadow-lg">
               <View className="flex items-center gap-3 mb-3">

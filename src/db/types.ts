@@ -24,6 +24,7 @@ export interface Topic {
   name: string
   description: string | null
   icon_url: string | null
+  is_archived: boolean
   created_at: string
   updated_at: string
 }

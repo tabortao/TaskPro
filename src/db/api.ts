@@ -19,8 +19,13 @@ export async function updateProfile(userId: string, updates: Partial<Profile>) {
 
 // ==================== Topic API ====================
 
-export async function getTopics(userId: string, searchQuery?: string) {
-  let query = supabase.from('topics').select('*').eq('user_id', userId).order('updated_at', {ascending: false})
+export async function getTopics(userId: string, searchQuery?: string, isArchived = false) {
+  let query = supabase
+    .from('topics')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_archived', isArchived)
+    .order('updated_at', {ascending: false})
 
   if (searchQuery) {
     query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
@@ -132,6 +137,46 @@ export async function getTags(userId: string) {
     .select('*')
     .eq('user_id', userId)
     .order('created_at', {ascending: true})
+
+  if (error) throw error
+  return (data || []) as Tag[]
+}
+
+export async function getRecentTags(userId: string, limit = 10) {
+  // 获取最近使用的标签（通过 task_tags 关联查询）
+  const {data, error} = await supabase
+    .from('task_tags')
+    .select('tag_id, created_at, tags(*)')
+    .eq('tags.user_id', userId)
+    .order('created_at', {ascending: false})
+    .limit(limit * 3) // 多获取一些以便去重
+
+  if (error) throw error
+
+  // 去重并限制数量
+  const uniqueTags: Tag[] = []
+  const seenIds = new Set<string>()
+
+  for (const item of data || []) {
+    const tag = (item as any).tags
+    if (tag && !seenIds.has(tag.id)) {
+      seenIds.add(tag.id)
+      uniqueTags.push(tag)
+      if (uniqueTags.length >= limit) break
+    }
+  }
+
+  return uniqueTags
+}
+
+export async function searchTags(userId: string, keyword: string) {
+  const {data, error} = await supabase
+    .from('tags')
+    .select('*')
+    .eq('user_id', userId)
+    .ilike('name', `%${keyword}%`)
+    .order('created_at', {ascending: false})
+    .limit(10)
 
   if (error) throw error
   return (data || []) as Tag[]
