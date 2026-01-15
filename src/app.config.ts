@@ -1,25 +1,38 @@
-const pages = ['pages/home/index', 'pages/login/index']
+const pages = [
+  'pages/topics/index',
+  'pages/tasks/index',
+  'pages/profile/index',
+  'pages/login/index',
+  'pages/s3-config/index',
+  'pages/topic-form/index'
+]
 
-//  To fully leverage TypeScript's type safety and ensure its correctness, always enclose the configuration object within the global defineAppConfig helper function.
 export default defineAppConfig({
   pages,
   tabBar: {
-    // at least two items are required
+    color: '#8B9DC3',
+    selectedColor: '#4A90E2',
+    backgroundColor: '#FFFFFF',
+    borderStyle: 'white',
     list: [
       {
-        pagePath: 'pages/home/index',
-        text: 'Home'
+        pagePath: 'pages/topics/index',
+        text: '话题',
+        iconPath: './assets/images/unselected/topics.png',
+        selectedIconPath: './assets/images/selected/topics.png'
+      },
+      {
+        pagePath: 'pages/profile/index',
+        text: '我的',
+        iconPath: './assets/images/unselected/profile.png',
+        selectedIconPath: './assets/images/selected/profile.png'
       }
-      // {
-      //     pagePath: 'pages/welcome/index',
-      //     text: 'welcome'
-      // }
     ]
   },
   window: {
     backgroundTextStyle: 'light',
-    navigationBarBackgroundColor: '#fff',
-    navigationBarTitleText: 'WeChat',
-    navigationBarTextStyle: 'black'
+    navigationBarBackgroundColor: '#4A90E2',
+    navigationBarTitleText: 'TaskPro',
+    navigationBarTextStyle: 'white'
   }
 })
