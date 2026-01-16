@@ -5,7 +5,7 @@ import GlobalInput from '@/components/GlobalInput'
 import SwipeableTaskCard from '@/components/SwipeableTaskCard'
 import TagDrawer from '@/components/TagDrawer'
 import TagForm from '@/components/TagForm'
-import {createTag, deleteTag, deleteTask, getTags, getTasks, getTopic, updateTag} from '@/db/api'
+import {createTag, deleteTag, deleteTask, getTags, getTasks, getTopic, updateTag, updateTask} from '@/db/api'
 import type {Tag, TaskWithTags, Topic} from '@/db/types'
 import {authGuard, getCurrentUserId} from '@/utils/auth'
 import {getImageUrl} from '@/utils/upload'
@@ -159,6 +159,52 @@ export default function Tasks() {
     }
   }
 
+  const handleEditTask = (taskId: string) => {
+    Taro.navigateTo({url: `/pages/task-edit/index?taskId=${taskId}`})
+  }
+
+  const handleTogglePin = async (taskId: string) => {
+    try {
+      const task = allTasks.find((t) => t.id === taskId)
+      if (!task) return
+
+      await updateTask(taskId, {is_pinned: !task.is_pinned})
+      Taro.showToast({title: task.is_pinned ? '取消置顶' : '已置顶', icon: 'success'})
+      loadData()
+    } catch (error) {
+      console.error('更新置顶状态失败:', error)
+      Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
+  const handleToggleFavorite = async (taskId: string) => {
+    try {
+      const task = allTasks.find((t) => t.id === taskId)
+      if (!task) return
+
+      await updateTask(taskId, {is_favorite: !task.is_favorite})
+      Taro.showToast({title: task.is_favorite ? '取消收藏' : '已收藏', icon: 'success'})
+      loadData()
+    } catch (error) {
+      console.error('更新收藏状态失败:', error)
+      Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
+  const handleToggleComplete = async (taskId: string) => {
+    try {
+      const task = allTasks.find((t) => t.id === taskId)
+      if (!task) return
+
+      await updateTask(taskId, {is_completed: !task.is_completed})
+      Taro.showToast({title: task.is_completed ? '标记为未完成' : '标记为已完成', icon: 'success'})
+      loadData()
+    } catch (error) {
+      console.error('更新完成状态失败:', error)
+      Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
   return (
     <View className="min-h-screen bg-gradient-subtle flex flex-col">
       {/* 话题信息 */}
@@ -259,6 +305,10 @@ export default function Tasks() {
                   key={task.id}
                   task={task}
                   onDelete={handleDeleteTask}
+                  onEdit={handleEditTask}
+                  onTogglePin={handleTogglePin}
+                  onToggleFavorite={handleToggleFavorite}
+                  onToggleComplete={handleToggleComplete}
                   onClick={() => Taro.navigateTo({url: `/pages/task-detail/index?taskId=${task.id}`})}
                 />
               ))}

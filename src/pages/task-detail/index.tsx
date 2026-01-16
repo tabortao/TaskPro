@@ -13,7 +13,6 @@ export default function TaskDetail() {
   const [loading, setLoading] = useState(false)
   const [taskId, setTaskId] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
-  const [showMenu, setShowMenu] = useState(false)
 
   useLoad((options) => {
     if (options.taskId) {
@@ -92,54 +91,6 @@ export default function TaskDetail() {
     } catch (error) {
       console.error('更新完成状态失败:', error)
       Taro.showToast({title: '操作失败', icon: 'none'})
-    }
-  }
-
-  const handleTogglePin = async () => {
-    if (!task || !userId) return
-
-    try {
-      await updateTask(task.id, {is_pinned: !task.is_pinned})
-      setTask({...task, is_pinned: !task.is_pinned})
-      Taro.showToast({title: task.is_pinned ? '取消置顶' : '已置顶', icon: 'success'})
-      setShowMenu(false)
-    } catch (error) {
-      console.error('更新置顶状态失败:', error)
-      Taro.showToast({title: '操作失败', icon: 'none'})
-    }
-  }
-
-  const handleEdit = () => {
-    if (!task) return
-
-    setShowMenu(false)
-
-    // 跳转到任务编辑页面
-    Taro.navigateTo({
-      url: `/pages/task-edit/index?taskId=${task.id}`
-    })
-  }
-
-  const handleDelete = async () => {
-    if (!task || !userId) return
-
-    const result = await Taro.showModal({
-      title: '确认删除',
-      content: '确定要删除这个任务吗？'
-    })
-
-    if (!result.confirm) return
-
-    try {
-      const {deleteTask} = await import('@/db/api')
-      await deleteTask(task.id)
-      Taro.showToast({title: '删除成功', icon: 'success'})
-      setTimeout(() => {
-        Taro.navigateBack()
-      }, 1000)
-    } catch (error) {
-      console.error('删除任务失败:', error)
-      Taro.showToast({title: '删除失败', icon: 'none'})
     }
   }
 
@@ -230,92 +181,30 @@ export default function TaskDetail() {
 
   return (
     <View className="min-h-screen bg-gradient-subtle flex flex-col">
-      {/* 遮罩层 - 点击关闭菜单 */}
-      {showMenu && (
-        <View
-          className="fixed inset-0 z-40"
-          style={{background: 'transparent'}}
-          onClick={() => setShowMenu(false)}
-          catchMove
-        />
-      )}
-
       {/* 任务内容 */}
       <ScrollView scrollY className="flex-1" style={{height: 'calc(100vh - 120px)'}}>
         <View className="p-4">
           {/* 任务卡片 */}
           <View className="bg-card rounded-xl p-4 shadow-md border border-border mb-4">
-            {/* 任务状态、收藏和菜单 */}
+            {/* 任务状态和收藏 */}
             <View className="flex items-center justify-between mb-3">
               <View className="flex items-center gap-2">
                 <View
-                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer ${
+                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center cursor-pointer ${
                     task.is_completed ? 'bg-primary border-primary' : 'border-border'
                   }`}
                   onClick={handleToggleComplete}>
-                  {task.is_completed && <View className="i-mdi-check text-white text-sm" />}
+                  {task.is_completed && <View className="i-mdi-check text-white text-base" />}
                 </View>
                 <Text className="text-sm text-muted-foreground">{task.is_completed ? '已完成' : '进行中'}</Text>
               </View>
-              <View className="flex items-center gap-2">
+              <View className="flex items-center gap-3">
+                {task.is_pinned && <View className="i-mdi-pin text-2xl text-primary" />}
                 <View
                   className="i-mdi-star text-2xl"
                   style={{color: task.is_favorite ? '#F39C12' : '#ccc'}}
                   onClick={handleToggleFavorite}
                 />
-                {/* 菜单按钮 */}
-                <View className="relative">
-                  <View
-                    className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center"
-                    onClick={() => setShowMenu(!showMenu)}>
-                    <View className="i-mdi-dots-vertical text-lg text-secondary-foreground" />
-                  </View>
-
-                  {/* 菜单选项 */}
-                  {showMenu && (
-                    <View className="absolute top-10 right-0 bg-card rounded-xl shadow-xl border border-border overflow-hidden min-w-32 z-50">
-                      <View
-                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleTogglePin()
-                        }}>
-                        <View className={`i-mdi-pin text-lg ${task.is_pinned ? 'text-primary' : 'text-foreground'}`} />
-                        <Text className="text-sm text-foreground">{task.is_pinned ? '取消置顶' : '置顶'}</Text>
-                      </View>
-                      <View
-                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleEdit()
-                        }}>
-                        <View className="i-mdi-pencil text-lg text-foreground" />
-                        <Text className="text-sm text-foreground">编辑</Text>
-                      </View>
-                      <View
-                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleFavorite()
-                        }}>
-                        <View
-                          className={`i-mdi-star text-lg ${task.is_favorite ? 'text-primary' : 'text-foreground'}`}
-                        />
-                        <Text className="text-sm text-foreground">{task.is_favorite ? '取消收藏' : '收藏'}</Text>
-                      </View>
-                      <View
-                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setShowMenu(false)
-                          handleDelete()
-                        }}>
-                        <View className="i-mdi-delete text-lg text-destructive" />
-                        <Text className="text-sm text-destructive">删除</Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
               </View>
             </View>
 
