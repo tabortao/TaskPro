@@ -154,8 +154,8 @@ export default function Tasks() {
       {topic && (
         <View className="bg-gradient-card p-4 border-b border-border">
           <View className="flex items-start gap-3">
-            {/* 话题图标和备注 */}
-            <View className="flex flex-col items-center gap-2">
+            {/* 话题图标 */}
+            <View className="flex flex-col items-center">
               {topic.icon_url ? (
                 !topic.icon_url.startsWith('http') ? (
                   <View className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-primary">
@@ -168,11 +168,6 @@ export default function Tasks() {
                 <View className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
                   <View className="i-mdi-folder text-2xl text-white" />
                 </View>
-              )}
-              {topic.description && (
-                <Text className="text-xs text-muted-foreground text-center break-keep max-w-16">
-                  {topic.description}
-                </Text>
               )}
             </View>
 

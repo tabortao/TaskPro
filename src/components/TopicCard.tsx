@@ -38,6 +38,9 @@ export default function TopicCard({topic, onClick, onUpdate}: TopicCardProps) {
         {/* 话题信息 */}
         <View className="flex-1 min-w-0">
           <Text className="text-base font-semibold text-foreground break-keep">{topic.name}</Text>
+          {topic.description && (
+            <Text className="text-sm text-muted-foreground break-keep mt-1">{topic.description}</Text>
+          )}
         </View>
 
         {/* 编辑按钮 */}

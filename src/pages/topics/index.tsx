@@ -14,6 +14,9 @@ export default function Topics() {
   const [searchResults, setSearchResults] = useState<(TaskWithTags & {topic: Topic})[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(false)
+  const [showSearchBar, setShowSearchBar] = useState(false)
+  const [filterType, setFilterType] = useState<'all' | 'ongoing'>('all')
 
   const loadTopics = useCallback(async () => {
     try {
@@ -22,14 +25,16 @@ export default function Topics() {
       if (!userId) return
 
       const data = await getTopics(userId, '', false)
-      setTopics(data)
+      // 根据筛选类型过滤话题
+      const filteredData = filterType === 'ongoing' ? data.filter((t) => !t.is_archived) : data
+      setTopics(filteredData)
     } catch (error) {
       console.error('加载话题失败:', error)
       Taro.showToast({title: '加载失败', icon: 'none'})
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filterType])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -60,7 +65,7 @@ export default function Topics() {
     setSearchResults([])
   }
 
-  const handleGoToProfile = () => {
+  const _handleGoToProfile = () => {
     Taro.navigateTo({url: '/pages/profile/index'})
   }
 
@@ -71,6 +76,11 @@ export default function Topics() {
         loadTopics()
       }
     })
+  })
+
+  // 当筛选类型改变时重新加载
+  useDidShow(() => {
+    loadTopics()
   })
 
   const handleAddTopic = () => {
@@ -87,27 +97,106 @@ export default function Topics() {
 
   return (
     <View className="min-h-screen bg-gradient-subtle pb-32">
-      {/* 搜索栏 */}
-      <View className="bg-card px-4 py-3 border-b border-border">
-        <View className="flex items-center gap-2">
-          <View className="flex-1 bg-input rounded-lg border border-border px-3 py-2 flex items-center">
-            <View className="i-mdi-magnify text-xl text-muted-foreground mr-2" />
-            <Input
-              className="flex-1 text-foreground"
-              style={{padding: 0, border: 'none', background: 'transparent'}}
-              placeholder="搜索任务内容..."
-              value={searchQuery}
-              onInput={(e) => setSearchQuery(e.detail.value)}
-              onConfirm={handleSearch}
-            />
-            {searchQuery && <View className="i-mdi-close text-xl text-muted-foreground" onClick={handleClearSearch} />}
-          </View>
+      {/* 遮罩层 - 点击关闭侧边栏 */}
+      {showSidebar && (
+        <View className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowSidebar(false)} />
+      )}
+
+      {/* 侧边栏 */}
+      <View
+        className={`fixed top-0 left-0 h-full bg-card shadow-2xl z-50 transition-transform duration-300 ${
+          showSidebar ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{width: '80%'}}>
+        <View className="p-6">
+          <Text className="text-xl font-bold text-foreground mb-6">筛选</Text>
+
+          {/* 进行中 */}
           <View
-            className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"
-            onClick={handleGoToProfile}>
-            <View className="i-mdi-account text-2xl text-primary-foreground" />
+            className={`flex items-center gap-3 p-4 rounded-lg mb-3 ${
+              filterType === 'ongoing' ? 'bg-primary' : 'bg-secondary'
+            }`}
+            onClick={() => {
+              setFilterType('ongoing')
+              setShowSidebar(false)
+            }}>
+            <View
+              className={`i-mdi-folder-open text-2xl ${
+                filterType === 'ongoing' ? 'text-white' : 'text-secondary-foreground'
+              }`}
+            />
+            <Text
+              className={`text-base font-semibold ${
+                filterType === 'ongoing' ? 'text-white' : 'text-secondary-foreground'
+              }`}>
+              进行中
+            </Text>
+          </View>
+
+          {/* 我的 */}
+          <View
+            className={`flex items-center gap-3 p-4 rounded-lg ${filterType === 'all' ? 'bg-primary' : 'bg-secondary'}`}
+            onClick={() => {
+              setFilterType('all')
+              setShowSidebar(false)
+            }}>
+            <View
+              className={`i-mdi-account text-2xl ${filterType === 'all' ? 'text-white' : 'text-secondary-foreground'}`}
+            />
+            <Text
+              className={`text-base font-semibold ${
+                filterType === 'all' ? 'text-white' : 'text-secondary-foreground'
+              }`}>
+              我的
+            </Text>
           </View>
         </View>
+      </View>
+
+      {/* 顶部导航栏 */}
+      <View className="bg-card px-4 py-3 border-b border-border">
+        <View className="flex items-center gap-3">
+          {/* 左侧菜单按钮 */}
+          <View
+            className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center"
+            onClick={() => setShowSidebar(true)}>
+            <View className="i-mdi-menu text-2xl text-secondary-foreground" />
+          </View>
+
+          {/* 标题 */}
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-foreground">
+              {filterType === 'ongoing' ? '进行中' : '我的话题'}
+            </Text>
+          </View>
+
+          {/* 右侧搜索图标 */}
+          <View
+            className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"
+            onClick={() => setShowSearchBar(!showSearchBar)}>
+            <View className="i-mdi-magnify text-2xl text-primary-foreground" />
+          </View>
+        </View>
+
+        {/* 搜索框 */}
+        {showSearchBar && (
+          <View className="mt-3">
+            <View className="bg-input rounded-lg border border-border px-3 py-2 flex items-center">
+              <View className="i-mdi-magnify text-xl text-muted-foreground mr-2" />
+              <Input
+                className="flex-1 text-foreground"
+                style={{padding: 0, border: 'none', background: 'transparent'}}
+                placeholder="搜索任务内容..."
+                value={searchQuery}
+                onInput={(e) => setSearchQuery(e.detail.value)}
+                onConfirm={handleSearch}
+              />
+              {searchQuery && (
+                <View className="i-mdi-close text-xl text-muted-foreground" onClick={handleClearSearch} />
+              )}
+            </View>
+          </View>
+        )}
       </View>
 
       {/* 内容区域 */}
