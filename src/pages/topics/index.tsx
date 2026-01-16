@@ -171,8 +171,8 @@ export default function Topics() {
             <View className="i-mdi-menu text-2xl text-secondary-foreground" />
           </View>
 
-          {/* 标题 */}
-          <View className="flex-1">
+          {/* 标题 - 居中显示 */}
+          <View className="flex-1 flex justify-center">
             <Text className="text-lg font-bold text-foreground">{viewMode === 'ongoing' ? '进行中' : '我的话题'}</Text>
           </View>
 
