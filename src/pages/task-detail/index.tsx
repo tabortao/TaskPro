@@ -232,7 +232,12 @@ export default function TaskDetail() {
     <View className="min-h-screen bg-gradient-subtle flex flex-col">
       {/* 遮罩层 - 点击关闭菜单 */}
       {showMenu && (
-        <View className="fixed inset-0 z-40" style={{background: 'transparent'}} onClick={() => setShowMenu(false)} />
+        <View
+          className="fixed inset-0 z-40"
+          style={{background: 'transparent'}}
+          onClick={() => setShowMenu(false)}
+          catchMove
+        />
       )}
 
       {/* 任务内容 */}
@@ -271,19 +276,28 @@ export default function TaskDetail() {
                     <View className="absolute top-10 right-0 bg-card rounded-xl shadow-xl border border-border overflow-hidden min-w-32 z-50">
                       <View
                         className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-                        onClick={handleTogglePin}>
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleTogglePin()
+                        }}>
                         <View className={`i-mdi-pin text-lg ${task.is_pinned ? 'text-primary' : 'text-foreground'}`} />
                         <Text className="text-sm text-foreground">{task.is_pinned ? '取消置顶' : '置顶'}</Text>
                       </View>
                       <View
                         className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-                        onClick={handleEdit}>
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEdit()
+                        }}>
                         <View className="i-mdi-pencil text-lg text-foreground" />
                         <Text className="text-sm text-foreground">编辑</Text>
                       </View>
                       <View
                         className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-                        onClick={handleToggleFavorite}>
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleFavorite()
+                        }}>
                         <View
                           className={`i-mdi-star text-lg ${task.is_favorite ? 'text-primary' : 'text-foreground'}`}
                         />
@@ -291,7 +305,11 @@ export default function TaskDetail() {
                       </View>
                       <View
                         className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent"
-                        onClick={handleDelete}>
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowMenu(false)
+                          handleDelete()
+                        }}>
                         <View className="i-mdi-delete text-lg text-destructive" />
                         <Text className="text-sm text-destructive">删除</Text>
                       </View>

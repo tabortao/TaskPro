@@ -2,10 +2,10 @@ import {Image, ScrollView, Text, View} from '@tarojs/components'
 import Taro, {useDidShow, useLoad} from '@tarojs/taro'
 import {useCallback, useMemo, useState} from 'react'
 import GlobalInput from '@/components/GlobalInput'
+import SwipeableTaskCard from '@/components/SwipeableTaskCard'
 import TagDrawer from '@/components/TagDrawer'
 import TagForm from '@/components/TagForm'
-import TaskItem from '@/components/TaskItem'
-import {createTag, deleteTag, getTags, getTasks, getTopic, updateTag} from '@/db/api'
+import {createTag, deleteTag, deleteTask, getTags, getTasks, getTopic, updateTag} from '@/db/api'
 import type {Tag, TaskWithTags, Topic} from '@/db/types'
 import {authGuard, getCurrentUserId} from '@/utils/auth'
 import {getImageUrl} from '@/utils/upload'
@@ -148,6 +148,17 @@ export default function Tasks() {
     }
   }
 
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask(taskId)
+      Taro.showToast({title: '删除成功', icon: 'success'})
+      loadData()
+    } catch (error) {
+      console.error('删除任务失败:', error)
+      Taro.showToast({title: '删除失败', icon: 'none'})
+    }
+  }
+
   return (
     <View className="min-h-screen bg-gradient-subtle flex flex-col">
       {/* 话题信息 */}
@@ -171,9 +182,9 @@ export default function Tasks() {
               )}
             </View>
 
-            {/* 话题名称和状态 */}
+            {/* 话题名称和状态 - 上下左对齐 */}
             <View className="flex-1 min-w-0">
-              <View className="flex items-center gap-2">
+              <View className="flex flex-col items-start gap-1">
                 <Text className="text-lg font-bold text-foreground break-keep">{topic.name}</Text>
                 {topic.description && (
                   <Text className="text-sm text-muted-foreground break-keep">{topic.description}</Text>
@@ -244,7 +255,12 @@ export default function Tasks() {
           ) : (
             <View className="flex flex-col gap-3">
               {displayTasks.map((task) => (
-                <TaskItem key={task.id} task={task} onUpdate={loadData} />
+                <SwipeableTaskCard
+                  key={task.id}
+                  task={task}
+                  onDelete={handleDeleteTask}
+                  onClick={() => Taro.navigateTo({url: `/pages/task-detail/index?taskId=${task.id}`})}
+                />
               ))}
             </View>
           )}
