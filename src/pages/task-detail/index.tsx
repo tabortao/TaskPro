@@ -74,6 +74,19 @@ export default function TaskDetail() {
     }
   }
 
+  const handleToggleComplete = async () => {
+    if (!task || !userId) return
+
+    try {
+      await updateTask(task.id, {is_completed: !task.is_completed})
+      setTask({...task, is_completed: !task.is_completed})
+      Taro.showToast({title: task.is_completed ? '标记为未完成' : '标记为已完成', icon: 'success'})
+    } catch (error) {
+      console.error('更新完成状态失败:', error)
+      Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
   const handleTogglePin = async () => {
     if (!task || !userId) return
 
@@ -88,10 +101,19 @@ export default function TaskDetail() {
     }
   }
 
-  const handleEdit = () => {
-    // TODO: 实现编辑功能
-    Taro.showToast({title: '编辑功能开发中', icon: 'none'})
+  const handleEdit = async () => {
+    if (!task) return
+
     setShowMenu(false)
+
+    // 使用 Taro.prompt 编辑任务内容（H5 环境）
+    // 小程序环境暂时提示功能开发中
+    Taro.showModal({
+      title: '编辑任务',
+      content: `当前任务内容：\n${task.content}\n\n小程序暂不支持直接编辑，请在任务列表中重新创建任务。`,
+      showCancel: true,
+      confirmText: '知道了'
+    })
   }
 
   const handleDelete = async () => {
@@ -204,64 +226,75 @@ export default function TaskDetail() {
 
   return (
     <View className="min-h-screen bg-gradient-subtle flex flex-col">
-      {/* 右上角菜单按钮 */}
-      <View className="fixed top-4 right-4 z-50">
-        <View
-          className="w-10 h-10 bg-card rounded-full shadow-lg flex items-center justify-center border border-border"
-          onClick={() => setShowMenu(!showMenu)}>
-          <View className="i-mdi-dots-vertical text-xl text-foreground" />
-        </View>
-
-        {/* 菜单选项 */}
-        {showMenu && (
-          <View className="absolute top-12 right-0 bg-card rounded-xl shadow-xl border border-border overflow-hidden min-w-32">
-            <View
-              className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-              onClick={handleTogglePin}>
-              <View className={`i-mdi-pin text-lg ${task?.is_pinned ? 'text-primary' : 'text-foreground'}`} />
-              <Text className="text-sm text-foreground">{task?.is_pinned ? '取消置顶' : '置顶'}</Text>
-            </View>
-            <View
-              className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-              onClick={handleEdit}>
-              <View className="i-mdi-pencil text-lg text-foreground" />
-              <Text className="text-sm text-foreground">编辑</Text>
-            </View>
-            <View
-              className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
-              onClick={handleToggleFavorite}>
-              <View className={`i-mdi-star text-lg ${task?.is_favorite ? 'text-primary' : 'text-foreground'}`} />
-              <Text className="text-sm text-foreground">{task?.is_favorite ? '取消收藏' : '收藏'}</Text>
-            </View>
-            <View className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent" onClick={handleDelete}>
-              <View className="i-mdi-delete text-lg text-destructive" />
-              <Text className="text-sm text-destructive">删除</Text>
-            </View>
-          </View>
-        )}
-      </View>
+      {/* 遮罩层 - 点击关闭菜单 */}
+      {showMenu && (
+        <View className="fixed inset-0 z-40" style={{background: 'transparent'}} onClick={() => setShowMenu(false)} />
+      )}
 
       {/* 任务内容 */}
       <ScrollView scrollY className="flex-1" style={{height: 'calc(100vh - 120px)'}}>
         <View className="p-4">
           {/* 任务卡片 */}
           <View className="bg-card rounded-xl p-4 shadow-md border border-border mb-4">
-            {/* 任务状态和收藏 */}
+            {/* 任务状态、收藏和菜单 */}
             <View className="flex items-center justify-between mb-3">
               <View className="flex items-center gap-2">
                 <View
-                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer ${
                     task.is_completed ? 'bg-primary border-primary' : 'border-border'
-                  }`}>
+                  }`}
+                  onClick={handleToggleComplete}>
                   {task.is_completed && <View className="i-mdi-check text-white text-sm" />}
                 </View>
                 <Text className="text-sm text-muted-foreground">{task.is_completed ? '已完成' : '进行中'}</Text>
               </View>
-              <View
-                className="i-mdi-star text-2xl"
-                style={{color: task.is_favorite ? '#F39C12' : '#ccc'}}
-                onClick={handleToggleFavorite}
-              />
+              <View className="flex items-center gap-2">
+                <View
+                  className="i-mdi-star text-2xl"
+                  style={{color: task.is_favorite ? '#F39C12' : '#ccc'}}
+                  onClick={handleToggleFavorite}
+                />
+                {/* 菜单按钮 */}
+                <View className="relative">
+                  <View
+                    className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center"
+                    onClick={() => setShowMenu(!showMenu)}>
+                    <View className="i-mdi-dots-vertical text-lg text-secondary-foreground" />
+                  </View>
+
+                  {/* 菜单选项 */}
+                  {showMenu && (
+                    <View className="absolute top-10 right-0 bg-card rounded-xl shadow-xl border border-border overflow-hidden min-w-32 z-50">
+                      <View
+                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
+                        onClick={handleTogglePin}>
+                        <View className={`i-mdi-pin text-lg ${task.is_pinned ? 'text-primary' : 'text-foreground'}`} />
+                        <Text className="text-sm text-foreground">{task.is_pinned ? '取消置顶' : '置顶'}</Text>
+                      </View>
+                      <View
+                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
+                        onClick={handleEdit}>
+                        <View className="i-mdi-pencil text-lg text-foreground" />
+                        <Text className="text-sm text-foreground">编辑</Text>
+                      </View>
+                      <View
+                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
+                        onClick={handleToggleFavorite}>
+                        <View
+                          className={`i-mdi-star text-lg ${task.is_favorite ? 'text-primary' : 'text-foreground'}`}
+                        />
+                        <Text className="text-sm text-foreground">{task.is_favorite ? '取消收藏' : '收藏'}</Text>
+                      </View>
+                      <View
+                        className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent"
+                        onClick={handleDelete}>
+                        <View className="i-mdi-delete text-lg text-destructive" />
+                        <Text className="text-sm text-destructive">删除</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </View>
             </View>
 
             {/* 任务内容 */}
