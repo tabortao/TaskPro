@@ -25,18 +25,32 @@ export default function TaskDetail() {
 
     setLoading(true)
     try {
+      console.log('[任务详情] 开始加载，taskId:', taskId)
+
       // 获取当前用户 ID
       const currentUserId = await getCurrentUserId()
+      console.log('[任务详情] 当前用户 ID:', currentUserId)
       setUserId(currentUserId)
 
+      console.log('[任务详情] 开始获取任务数据...')
       const taskData = await getTaskById(taskId)
+      console.log('[任务详情] 任务数据:', taskData)
       setTask(taskData)
 
+      console.log('[任务详情] 开始获取评论数据...')
       const commentsData = await getCommentsByTaskId(taskId)
+      console.log('[任务详情] 评论数据:', commentsData)
       setComments(commentsData)
-    } catch (error) {
-      console.error('加载任务详情失败:', error)
-      Taro.showToast({title: '加载失败', icon: 'none'})
+
+      console.log('[任务详情] 加载完成')
+    } catch (error: any) {
+      console.error('[任务详情] 加载失败:', error)
+      console.error('[任务详情] 错误详情:', error?.message, error?.details, error?.hint)
+      Taro.showToast({
+        title: `加载失败: ${error?.message || '未知错误'}`,
+        icon: 'none',
+        duration: 3000
+      })
     } finally {
       setLoading(false)
     }

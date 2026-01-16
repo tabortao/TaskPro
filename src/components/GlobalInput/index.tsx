@@ -100,7 +100,10 @@ export default function GlobalInput({
 
     try {
       setSubmitting(true)
+      console.log('[全局输入框-评论] 开始创建评论，taskId:', taskId)
+
       const userId = await getCurrentUserId()
+      console.log('[全局输入框-评论] 当前用户 ID:', userId)
       if (!userId) {
         Taro.showToast({title: '请先登录', icon: 'none'})
         return
@@ -111,18 +114,27 @@ export default function GlobalInput({
       commentContent = commentContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '[图片:$2]')
       commentContent = commentContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
 
+      console.log('[全局输入框-评论] 评论内容:', commentContent)
+      console.log('[全局输入框-评论] 开始调用 createComment...')
+
       await createComment({
         task_id: taskId,
         user_id: userId,
         content: commentContent
       })
 
+      console.log('[全局输入框-评论] 评论创建成功')
       setContent('')
       Taro.showToast({title: '评论成功', icon: 'success'})
       onCommentCreated?.()
     } catch (error: any) {
-      console.error('创建评论失败:', error)
-      Taro.showToast({title: error.message || '评论失败', icon: 'none', duration: 2000})
+      console.error('[全局输入框-评论] 创建评论失败:', error)
+      console.error('[全局输入框-评论] 错误详情:', error?.message, error?.details, error?.hint)
+      Taro.showToast({
+        title: `评论失败: ${error?.message || '未知错误'}`,
+        icon: 'none',
+        duration: 3000
+      })
     } finally {
       setSubmitting(false)
     }
