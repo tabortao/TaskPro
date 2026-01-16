@@ -13,6 +13,7 @@ export default function TaskDetail() {
   const [loading, setLoading] = useState(false)
   const [taskId, setTaskId] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [showMenu, setShowMenu] = useState(false)
 
   useLoad((options) => {
     if (options.taskId) {
@@ -70,6 +71,49 @@ export default function TaskDetail() {
     } catch (error) {
       console.error('更新收藏状态失败:', error)
       Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
+  const handleTogglePin = async () => {
+    if (!task || !userId) return
+
+    try {
+      await updateTask(task.id, {is_pinned: !task.is_pinned})
+      setTask({...task, is_pinned: !task.is_pinned})
+      Taro.showToast({title: task.is_pinned ? '取消置顶' : '已置顶', icon: 'success'})
+      setShowMenu(false)
+    } catch (error) {
+      console.error('更新置顶状态失败:', error)
+      Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
+  const handleEdit = () => {
+    // TODO: 实现编辑功能
+    Taro.showToast({title: '编辑功能开发中', icon: 'none'})
+    setShowMenu(false)
+  }
+
+  const handleDelete = async () => {
+    if (!task || !userId) return
+
+    const result = await Taro.showModal({
+      title: '确认删除',
+      content: '确定要删除这个任务吗？'
+    })
+
+    if (!result.confirm) return
+
+    try {
+      const {deleteTask} = await import('@/db/api')
+      await deleteTask(task.id)
+      Taro.showToast({title: '删除成功', icon: 'success'})
+      setTimeout(() => {
+        Taro.navigateBack()
+      }, 1000)
+    } catch (error) {
+      console.error('删除任务失败:', error)
+      Taro.showToast({title: '删除失败', icon: 'none'})
     }
   }
 
@@ -160,6 +204,43 @@ export default function TaskDetail() {
 
   return (
     <View className="min-h-screen bg-gradient-subtle flex flex-col">
+      {/* 右上角菜单按钮 */}
+      <View className="fixed top-4 right-4 z-50">
+        <View
+          className="w-10 h-10 bg-card rounded-full shadow-lg flex items-center justify-center border border-border"
+          onClick={() => setShowMenu(!showMenu)}>
+          <View className="i-mdi-dots-vertical text-xl text-foreground" />
+        </View>
+
+        {/* 菜单选项 */}
+        {showMenu && (
+          <View className="absolute top-12 right-0 bg-card rounded-xl shadow-xl border border-border overflow-hidden min-w-32">
+            <View
+              className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
+              onClick={handleTogglePin}>
+              <View className={`i-mdi-pin text-lg ${task?.is_pinned ? 'text-primary' : 'text-foreground'}`} />
+              <Text className="text-sm text-foreground">{task?.is_pinned ? '取消置顶' : '置顶'}</Text>
+            </View>
+            <View
+              className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
+              onClick={handleEdit}>
+              <View className="i-mdi-pencil text-lg text-foreground" />
+              <Text className="text-sm text-foreground">编辑</Text>
+            </View>
+            <View
+              className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent border-b border-border"
+              onClick={handleToggleFavorite}>
+              <View className={`i-mdi-star text-lg ${task?.is_favorite ? 'text-primary' : 'text-foreground'}`} />
+              <Text className="text-sm text-foreground">{task?.is_favorite ? '取消收藏' : '收藏'}</Text>
+            </View>
+            <View className="px-4 py-3 flex items-center gap-2 hover:bg-accent active:bg-accent" onClick={handleDelete}>
+              <View className="i-mdi-delete text-lg text-destructive" />
+              <Text className="text-sm text-destructive">删除</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
       {/* 任务内容 */}
       <ScrollView scrollY className="flex-1" style={{height: 'calc(100vh - 120px)'}}>
         <View className="p-4">

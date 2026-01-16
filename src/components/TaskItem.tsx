@@ -1,7 +1,6 @@
 import {Image, Text, View} from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import {useState} from 'react'
-import {deleteTask, updateTask} from '@/db/api'
+import {updateTask} from '@/db/api'
 import type {TaskWithTags} from '@/db/types'
 import {getImageUrl} from '@/utils/upload'
 
@@ -11,8 +10,6 @@ interface TaskItemProps {
 }
 
 export default function TaskItem({task, onUpdate}: TaskItemProps) {
-  const [showActions, setShowActions] = useState(false)
-
   // 获取第一个标签的颜色作为底纹
   const backgroundColor = task.tags && task.tags.length > 0 ? `${task.tags[0].color}15` : 'transparent'
 
@@ -29,55 +26,6 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
   const handleCompleteClick = (e: any) => {
     e.stopPropagation()
     handleToggleComplete()
-  }
-
-  const handleTogglePin = async (e: any) => {
-    e.stopPropagation()
-    try {
-      await updateTask(task.id, {is_pinned: !task.is_pinned})
-      Taro.showToast({title: task.is_pinned ? '取消置顶' : '已置顶', icon: 'success'})
-      onUpdate()
-    } catch (error) {
-      console.error('更新任务失败:', error)
-      Taro.showToast({title: '操作失败', icon: 'none'})
-    }
-  }
-
-  const handleToggleFavorite = async (e: any) => {
-    e.stopPropagation()
-    try {
-      await updateTask(task.id, {is_favorite: !task.is_favorite})
-      Taro.showToast({title: task.is_favorite ? '取消收藏' : '已收藏', icon: 'success'})
-      onUpdate()
-    } catch (error) {
-      console.error('更新任务失败:', error)
-      Taro.showToast({title: '操作失败', icon: 'none'})
-    }
-  }
-
-  const handleDelete = (e: any) => {
-    e.stopPropagation()
-    Taro.showModal({
-      title: '确认删除',
-      content: '确定要删除这个任务吗？',
-      success: async (res) => {
-        if (res.confirm) {
-          try {
-            await deleteTask(task.id)
-            Taro.showToast({title: '删除成功', icon: 'success'})
-            onUpdate()
-          } catch (error) {
-            console.error('删除任务失败:', error)
-            Taro.showToast({title: '删除失败', icon: 'none'})
-          }
-        }
-      }
-    })
-  }
-
-  const handleMoreClick = (e: any) => {
-    e.stopPropagation()
-    setShowActions(!showActions)
   }
 
   // 解析内容中的图片
@@ -178,46 +126,7 @@ export default function TaskItem({task, onUpdate}: TaskItemProps) {
             </View>
           )}
         </View>
-
-        {/* 更多操作 */}
-        <View className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center" onClick={handleMoreClick}>
-          <View className="i-mdi-dots-vertical text-lg text-secondary-foreground" />
-        </View>
       </View>
-
-      {/* 操作按钮 */}
-      {showActions && (
-        <View className="flex items-center gap-2 pt-3 border-t border-border">
-          <View
-            className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1 ${
-              task.is_pinned ? 'bg-primary' : 'bg-secondary'
-            }`}
-            onClick={handleTogglePin}>
-            <View className={`i-mdi-pin text-sm ${task.is_pinned ? 'text-white' : 'text-secondary-foreground'}`} />
-            <Text className={`text-xs ${task.is_pinned ? 'text-white' : 'text-secondary-foreground'}`}>
-              {task.is_pinned ? '取消置顶' : '置顶'}
-            </Text>
-          </View>
-
-          <View
-            className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1 ${
-              task.is_favorite ? 'bg-primary' : 'bg-secondary'
-            }`}
-            onClick={handleToggleFavorite}>
-            <View className={`i-mdi-star text-sm ${task.is_favorite ? 'text-white' : 'text-secondary-foreground'}`} />
-            <Text className={`text-xs ${task.is_favorite ? 'text-white' : 'text-secondary-foreground'}`}>
-              {task.is_favorite ? '取消收藏' : '收藏'}
-            </Text>
-          </View>
-
-          <View
-            className="flex-1 bg-destructive py-2 rounded-lg flex items-center justify-center gap-1"
-            onClick={handleDelete}>
-            <View className="i-mdi-delete text-sm text-white" />
-            <Text className="text-xs text-white">删除</Text>
-          </View>
-        </View>
-      )}
 
       {/* 状态标识 */}
       <View className="flex items-center gap-2 mt-2">

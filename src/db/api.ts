@@ -353,14 +353,37 @@ export async function deleteTag(tagId: string) {
 // ==================== 评论相关 API ====================
 
 export async function getCommentsByTaskId(taskId: string) {
-  const {data, error} = await supabase
+  // 先获取评论
+  const {data: comments, error: commentsError} = await supabase
     .from('comments')
-    .select('*, user:profiles!user_id(id, nickname, avatar_url)')
+    .select('*')
     .eq('task_id', taskId)
     .order('created_at', {ascending: true})
 
-  if (error) throw error
-  return (data || []) as CommentWithUser[]
+  if (commentsError) throw commentsError
+  if (!comments || comments.length === 0) return []
+
+  // 获取所有评论者的 user_id
+  const userIds = [...new Set(comments.map((c) => c.user_id))]
+
+  // 获取用户信息
+  const {data: profiles, error: profilesError} = await supabase
+    .from('profiles')
+    .select('id, nickname, avatar_url')
+    .in('id', userIds)
+
+  if (profilesError) throw profilesError
+
+  // 创建用户信息映射
+  const profileMap = new Map(profiles?.map((p) => [p.id, p]) || [])
+
+  // 组合数据
+  const commentsWithUser: CommentWithUser[] = comments.map((comment) => ({
+    ...comment,
+    user: profileMap.get(comment.user_id)
+  }))
+
+  return commentsWithUser
 }
 
 export async function createComment(comment: Omit<Comment, 'id' | 'created_at' | 'updated_at'>) {
