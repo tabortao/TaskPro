@@ -30,6 +30,8 @@ export default function TagForm({visible, tag, onClose, onSave}: TagFormProps) {
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('')
   const [color, setColor] = useState('#4A90E2')
+  const [customColor, setCustomColor] = useState('')
+  const [showCustomInput, setShowCustomInput] = useState(false)
 
   // 当 tag 变化时更新表单
   useEffect(() => {
@@ -37,10 +39,20 @@ export default function TagForm({visible, tag, onClose, onSave}: TagFormProps) {
       setName(tag.name || '')
       setEmoji(tag.emoji || '')
       setColor(tag.color || '#4A90E2')
+      // 检查是否是自定义颜色
+      if (tag.color && !PRESET_COLORS.includes(tag.color)) {
+        setCustomColor(tag.color)
+        setShowCustomInput(true)
+      } else {
+        setCustomColor('')
+        setShowCustomInput(false)
+      }
     } else {
       setName('')
       setEmoji('')
       setColor('#4A90E2')
+      setCustomColor('')
+      setShowCustomInput(false)
     }
   }, [tag])
 
@@ -50,7 +62,17 @@ export default function TagForm({visible, tag, onClose, onSave}: TagFormProps) {
     if (!name.trim()) {
       return
     }
-    onSave({name: name.trim(), emoji, color})
+    // 使用自定义颜色或预设颜色
+    const finalColor = showCustomInput && customColor ? customColor : color
+    onSave({name: name.trim(), emoji, color: finalColor})
+  }
+
+  const handleCustomColorChange = (value: string) => {
+    setCustomColor(value)
+    // 如果输入的是有效的颜色代码，更新预览
+    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+      setColor(value)
+    }
   }
 
   return (
@@ -116,12 +138,47 @@ export default function TagForm({visible, tag, onClose, onSave}: TagFormProps) {
               {PRESET_COLORS.map((c) => (
                 <View
                   key={c}
-                  className={`w-10 h-10 rounded-lg ${color === c ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                  className={`w-10 h-10 rounded-lg ${color === c && !showCustomInput ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   style={{backgroundColor: c}}
-                  onClick={() => setColor(c)}
+                  onClick={() => {
+                    setColor(c)
+                    setShowCustomInput(false)
+                  }}
                 />
               ))}
+              {/* 自定义颜色按钮 */}
+              <View
+                className={`w-10 h-10 rounded-lg border-2 border-dashed flex items-center justify-center ${
+                  showCustomInput ? 'border-primary bg-primary bg-opacity-10' : 'border-border'
+                }`}
+                onClick={() => setShowCustomInput(!showCustomInput)}>
+                <View className="i-mdi-palette text-lg text-foreground" />
+              </View>
             </View>
+
+            {/* 自定义颜色输入 */}
+            {showCustomInput && (
+              <View className="mt-3">
+                <View className="flex items-center gap-2">
+                  <View className="flex-1 bg-input rounded-lg border border-border px-3 py-2">
+                    <Input
+                      className="w-full text-foreground"
+                      style={{padding: 0, border: 'none', background: 'transparent'}}
+                      placeholder="#4A90E2"
+                      value={customColor}
+                      onInput={(e) => handleCustomColorChange(e.detail.value)}
+                      maxlength={7}
+                    />
+                  </View>
+                  {/* 颜色预览 */}
+                  <View
+                    className="w-10 h-10 rounded-lg border border-border"
+                    style={{backgroundColor: customColor || color}}
+                  />
+                </View>
+                <Text className="text-xs text-muted-foreground mt-1">请输入十六进制颜色代码，例如：#4A90E2</Text>
+              </View>
+            )}
           </View>
 
           {/* 按钮 */}

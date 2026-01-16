@@ -78,9 +78,17 @@ export default function TaskDetail() {
     if (!task || !userId) return
 
     try {
-      await updateTask(task.id, {is_completed: !task.is_completed})
-      setTask({...task, is_completed: !task.is_completed})
-      Taro.showToast({title: task.is_completed ? '标记为未完成' : '标记为已完成', icon: 'success'})
+      const newStatus = !task.is_completed
+      await updateTask(task.id, {is_completed: newStatus})
+      setTask({...task, is_completed: newStatus})
+      Taro.showToast({title: newStatus ? '已完成' : '标记为未完成', icon: 'success'})
+
+      // 如果标记为已完成，延迟返回任务列表
+      if (newStatus) {
+        setTimeout(() => {
+          Taro.navigateBack()
+        }, 1000)
+      }
     } catch (error) {
       console.error('更新完成状态失败:', error)
       Taro.showToast({title: '操作失败', icon: 'none'})
@@ -101,18 +109,14 @@ export default function TaskDetail() {
     }
   }
 
-  const handleEdit = async () => {
+  const handleEdit = () => {
     if (!task) return
 
     setShowMenu(false)
 
-    // 使用 Taro.prompt 编辑任务内容（H5 环境）
-    // 小程序环境暂时提示功能开发中
-    Taro.showModal({
-      title: '编辑任务',
-      content: `当前任务内容：\n${task.content}\n\n小程序暂不支持直接编辑，请在任务列表中重新创建任务。`,
-      showCancel: true,
-      confirmText: '知道了'
+    // 跳转到任务编辑页面
+    Taro.navigateTo({
+      url: `/pages/task-edit/index?taskId=${task.id}`
     })
   }
 

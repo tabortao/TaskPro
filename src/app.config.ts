@@ -6,6 +6,7 @@ const pages = [
   'pages/topic-form/index',
   'pages/archived-topics/index',
   'pages/task-detail/index',
+  'pages/task-edit/index',
   'pages/profile-edit/index'
 ]
 

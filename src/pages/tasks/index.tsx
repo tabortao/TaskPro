@@ -178,7 +178,12 @@ export default function Tasks() {
 
             {/* 话题名称和状态 */}
             <View className="flex-1 min-w-0">
-              <Text className="text-lg font-bold text-foreground break-keep">{topic.name}</Text>
+              <View className="flex items-center gap-2">
+                <Text className="text-lg font-bold text-foreground break-keep">{topic.name}</Text>
+                {topic.description && (
+                  <Text className="text-sm text-muted-foreground break-keep">{topic.description}</Text>
+                )}
+              </View>
               {topic.is_archived && (
                 <View className="flex items-center gap-1 mt-1">
                   <View className="i-mdi-archive text-xs text-muted-foreground" />
