@@ -183,6 +183,34 @@ export async function searchAllTasks(userId: string, keyword: string) {
   return tasks as (TaskWithTags & {topic: Topic})[]
 }
 
+// 获取所有正在进行的任务（未完成的任务）
+export async function getOngoingTasks(userId: string) {
+  const {data, error} = await supabase
+    .from('tasks')
+    .select(
+      `
+      *,
+      topics!inner(id, name, icon_url, is_archived),
+      tags:task_tags(tag:tags(*))
+    `
+    )
+    .eq('user_id', userId)
+    .eq('is_completed', false)
+    .eq('topics.is_archived', false)
+    .order('created_at', {ascending: false})
+
+  if (error) throw error
+
+  // 转换数据格式
+  const tasks = (data || []).map((task: any) => ({
+    ...task,
+    topic: task.topics,
+    tags: task.tags?.map((t: any) => t.tag).filter(Boolean) || []
+  }))
+
+  return tasks as (TaskWithTags & {topic: Topic})[]
+}
+
 // ==================== Tag API ====================
 
 export async function getTags(userId: string, topicId?: string | null) {
