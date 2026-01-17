@@ -279,7 +279,7 @@ export default function Tasks() {
 
       {/* 任务列表 */}
       <ScrollView scrollY className="flex-1" style={{height: 'calc(100vh - 280px)'}}>
-        <View className="p-4">
+        <View className="p-4 pb-24">
           {loading ? (
             <View className="flex flex-col items-center justify-center py-20">
               <View className="i-mdi-loading animate-spin text-4xl text-primary mb-2" />

@@ -154,8 +154,8 @@ export default function SwipeableTopicCard({
         <View className="flex items-start gap-3">
           {/* 话题图标 */}
           <View className="flex-shrink-0">
-            {topic.icon ? (
-              <Image src={getImageUrl(topic.icon)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
+            {topic.icon_url ? (
+              <Image src={getImageUrl(topic.icon_url)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
             ) : (
               <View className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
                 <View className="i-mdi-folder text-2xl text-white" />
