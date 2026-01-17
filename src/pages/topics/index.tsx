@@ -3,8 +3,8 @@ import Taro, {useDidShow} from '@tarojs/taro'
 import {useCallback, useState} from 'react'
 import FloatingButton from '@/components/FloatingButton'
 import GlobalInput from '@/components/GlobalInput'
-import TopicCard from '@/components/TopicCard'
-import {getOngoingTasks, getTopics, searchAllTasks} from '@/db/api'
+import SwipeableTopicCard from '@/components/SwipeableTopicCard'
+import {deleteTopic, getOngoingTasks, getTopics, searchAllTasks, updateTopic} from '@/db/api'
 import type {TaskWithTags, Topic} from '@/db/types'
 import {authGuard, getCurrentUserId} from '@/utils/auth'
 
@@ -80,6 +80,46 @@ export default function Topics() {
     setSearchResults([])
   }
 
+  const handleDeleteTopic = async (topicId: string) => {
+    try {
+      await deleteTopic(topicId)
+      Taro.showToast({title: '删除成功', icon: 'success'})
+      loadTopics()
+    } catch (error) {
+      console.error('删除话题失败:', error)
+      Taro.showToast({title: '删除失败', icon: 'none'})
+    }
+  }
+
+  const handleEditTopic = (topicId: string) => {
+    Taro.navigateTo({url: `/pages/topic-form/index?topicId=${topicId}`})
+  }
+
+  const handleTogglePin = async (topicId: string) => {
+    try {
+      const topic = topics.find((t) => t.id === topicId)
+      if (!topic) return
+
+      await updateTopic(topicId, {is_pinned: !topic.is_pinned})
+      Taro.showToast({title: topic.is_pinned ? '取消置顶' : '已置顶', icon: 'success'})
+      loadTopics()
+    } catch (error) {
+      console.error('更新置顶状态失败:', error)
+      Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
+  const handleArchive = async (topicId: string) => {
+    try {
+      await updateTopic(topicId, {is_archived: true})
+      Taro.showToast({title: '已归档', icon: 'success'})
+      loadTopics()
+    } catch (error) {
+      console.error('归档话题失败:', error)
+      Taro.showToast({title: '操作失败', icon: 'none'})
+    }
+  }
+
   const _handleGoToProfile = () => {
     Taro.navigateTo({url: '/pages/profile/index'})
   }
@@ -124,6 +164,29 @@ export default function Topics() {
         style={{width: '80%'}}>
         <View className="p-6">
           <Text className="text-xl font-bold text-foreground mb-6">菜单</Text>
+
+          {/* 我的话题 */}
+          <View
+            className={`flex items-center gap-3 p-4 rounded-lg mb-3 ${
+              viewMode === 'topics' ? 'bg-primary' : 'bg-secondary'
+            }`}
+            onClick={() => {
+              setViewMode('topics')
+              setShowSidebar(false)
+              loadTopics()
+            }}>
+            <View
+              className={`i-mdi-folder-outline text-2xl ${
+                viewMode === 'topics' ? 'text-white' : 'text-secondary-foreground'
+              }`}
+            />
+            <Text
+              className={`text-base font-semibold ${
+                viewMode === 'topics' ? 'text-white' : 'text-secondary-foreground'
+              }`}>
+              我的话题
+            </Text>
+          </View>
 
           {/* 进行中 */}
           <View
@@ -173,7 +236,7 @@ export default function Topics() {
 
           {/* 标题 - 居中显示 */}
           <View className="flex-1 flex justify-center">
-            <Text className="text-lg font-bold text-foreground">{viewMode === 'ongoing' ? '进行中' : '我的话题'}</Text>
+            {viewMode === 'ongoing' && <Text className="text-lg font-bold text-foreground">进行中</Text>}
           </View>
 
           {/* 右侧搜索图标 */}
@@ -302,11 +365,14 @@ export default function Topics() {
           ) : (
             <View className="space-y-3">
               {topics.map((topic) => (
-                <TopicCard
+                <SwipeableTopicCard
                   key={topic.id}
                   topic={topic}
+                  onDelete={handleDeleteTopic}
+                  onEdit={handleEditTopic}
+                  onTogglePin={handleTogglePin}
+                  onArchive={handleArchive}
                   onClick={() => handleTopicClick(topic.id)}
-                  onUpdate={loadTopics}
                 />
               ))}
             </View>

@@ -19,7 +19,9 @@ export interface Topic {
   name: string
   description: string | null
   icon_url: string | null
+  icon?: string // 兼容旧代码
   is_archived: boolean
+  is_pinned: boolean
   created_at: string
   updated_at: string
 }

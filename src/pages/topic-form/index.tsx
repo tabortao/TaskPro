@@ -76,7 +76,8 @@ export default function TopicForm() {
           name,
           description: description || null,
           icon_url: iconEmoji || null,
-          is_archived: false
+          is_archived: false,
+          is_pinned: false
         })
         Taro.showToast({title: '创建成功', icon: 'success'})
       }
