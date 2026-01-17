@@ -155,7 +155,13 @@ export default function SwipeableTopicCard({
           {/* 话题图标 */}
           <View className="flex-shrink-0">
             {topic.icon_url ? (
-              <Image src={getImageUrl(topic.icon_url)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
+              !topic.icon_url.startsWith('http') ? (
+                <View className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-primary">
+                  <Text className="text-3xl">{topic.icon_url}</Text>
+                </View>
+              ) : (
+                <Image src={getImageUrl(topic.icon_url)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
+              )
             ) : (
               <View className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
                 <View className="i-mdi-folder text-2xl text-white" />
