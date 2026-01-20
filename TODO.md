@@ -1,59 +1,55 @@
-# Task: 修复话题卡片 emoji 图标显示问题
+# Task: 添加项目文档
 
 ## Plan
-- [x] 1. 分析问题原因
-  - [x] 1.1 检查话题表单保存逻辑
-  - [x] 1.2 检查任务列表显示逻辑
-- [x] 2. 修复 SwipeableTopicCard 组件
-  - [x] 2.1 添加 emoji 判断逻辑
-  - [x] 2.2 使用 Text 组件显示 emoji
-  - [x] 2.3 保持样式一致性
+- [x] 1. 创建 README.md 文档
+  - [x] 1.1 项目简介
+  - [x] 1.2 核心功能
+  - [x] 1.3 技术栈
+  - [x] 1.4 项目结构
+  - [x] 1.5 快速开始
+  - [x] 1.6 开发指南
+  - [x] 1.7 数据库设计
+  - [x] 1.8 部署说明
+- [x] 2. 创建 docs/经验.md 文档
+  - [x] 2.1 项目初始化
+  - [x] 2.2 数据库设计
+  - [x] 2.3 功能实现
+  - [x] 2.4 性能优化
+  - [x] 2.5 常见问题
 - [x] 3. 运行 lint 检查
+- [x] 4. 提交代码
 
 ## Notes
-- ✅ 修复话题卡片 emoji 图标显示
-- ✅ 所有代码通过 lint 检查（44 个文件）
+- ✅ 创建完整的项目文档
+- ✅ 总结所有开发经验
+- ✅ 所有代码通过 lint 检查
 
-## 实现细节
+## 文档内容
 
-### 1. 问题分析
-- 话题表单使用 iconEmoji 保存到 icon_url 字段
-- icon_url 可能是 emoji 字符串或图片 URL
-- SwipeableTopicCard 组件之前只处理了图片 URL 的情况
-- 需要添加 emoji 判断和显示逻辑
+### README.md
+- 项目简介：TaskPro 是一个轻量级任务管理微信小程序
+- 核心功能：话题管理、任务管理、标签系统、用户认证
+- 技术栈：Taro 4.1.5 + React 18.3.1 + TypeScript + TailwindCSS + Supabase
+- 项目结构：详细的目录结构说明
+- 快速开始：环境要求、安装依赖、配置环境变量、开发调试
+- 开发指南：代码规范、组件开发、状态管理、数据库操作、路由导航、样式开发
+- 数据库设计：核心表结构、安全策略
+- 部署说明：微信小程序部署、H5 部署、Supabase 配置
 
-### 2. 修复方案
-- 检查 icon_url 是否以 http 开头
-- 如果不是 URL（即 emoji），使用 Text 组件显示
-- 如果是 URL，使用 Image 组件显示
-- 如果没有图标，显示默认文件夹图标
+### docs/经验.md
+- 项目初始化：技术栈选择、项目结构设计
+- 数据库设计与迁移：表结构设计、数据库迁移、RLS 安全策略
+- 话题管理功能：话题创建和编辑、图标显示、置顶和归档
+- 任务管理功能：Chat-style 输入、任务列表优化、任务状态管理、卡片交互优化
+- 标签系统：标签解析、层级结构、管理界面
+- 用户认证：登录方式、认证状态管理
+- 文件上传：Supabase Storage、S3 自定义存储
+- 界面交互优化：左滑右滑手势、主页菜单优化、响应式设计
+- 性能优化：列表渲染优化、数据库查询优化、状态管理优化
+- 常见问题：Taro 路由问题、TailwindCSS 类名冲突、Supabase RLS 权限问题、图片上传失败、小程序包大小超限、useEffect 依赖警告、类型定义不匹配
 
-### 3. 显示逻辑
-```typescript
-{topic.icon_url ? (
-  !topic.icon_url.startsWith('http') ? (
-    // Emoji 显示
-    <View className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-primary">
-      <Text className="text-3xl">{topic.icon_url}</Text>
-    </View>
-  ) : (
-    // 图片 URL 显示
-    <Image src={getImageUrl(topic.icon_url)} className="w-12 h-12 rounded-lg" mode="aspectFill" />
-  )
-) : (
-  // 默认图标
-  <View className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-    <View className="i-mdi-folder text-2xl text-white" />
-  </View>
-)}
-```
-
-### 4. 样式一致性
-- Emoji 容器：w-12 h-12 rounded-lg bg-gradient-primary
-- Emoji 文本：text-3xl
-- 与任务列表顶部图标样式完全一致
-
-## 待用户测试
-- 请测试话题卡片 emoji 图标是否正常显示
-- 请测试话题卡片图片 URL 是否正常显示
-- 请测试默认文件夹图标是否正常显示
+## 完成情况
+- ✅ README.md 文档完整
+- ✅ docs/经验.md 文档完整
+- ✅ 所有经验总结完成
+- ✅ 代码通过 lint 检查
