@@ -1,7 +1,3 @@
-# 欢迎使用你的秒哒应用代码包
-秒哒应用链接
-    URL:https://www.miaoda.cn/projects/app-8y2p9eqmj5dt
-
 # TaskPro - 轻量级任务管理小程序
 
 <div align="center">
@@ -34,6 +30,10 @@
 ## 🎯 项目简介
 
 TaskPro 是一个现代化的任务管理微信小程序，旨在帮助用户高效管理任务和项目。它提供了直观的用户界面、强大的标签系统和灵活的任务组织方式。
+
+秒哒应用链接:https://www.miaoda.cn/projects/app-8y2p9eqmj5dt
+
+![20260120223744](.\docs\img\20260120223744.jpg)
 
 ### 核心特点
 
